@@ -64,7 +64,7 @@ const Header = ({ isCartOpen, setIsCartOpen }) => {
                         {/* Logo Block */}
                         <div className="logo-area">
                             <Link to="/" className="brand-logo">
-                                <span className="logo-accent">S</span>WEECH
+                                <span className="logo-accent">C</span>ASEPROZ
                             </Link>
                         </div>
 
@@ -217,9 +217,9 @@ const Header = ({ isCartOpen, setIsCartOpen }) => {
             {/* Mobile Sidebar / Drawer */}
             {isMobileMenuOpen && (
                 <div className="mobile-drawer-overlay" onClick={() => setIsMobileMenuOpen(false)}>
-                    <div className="mobile-drawer" onClick={(e) => e.stopPropagation()}>
+                        <div className="mobile-drawer" onClick={(e) => e.stopPropagation()}>
                         <div className="drawer-header">
-                            <span className="brand-logo small"><span className="logo-accent">S</span>WEECH</span>
+                            <span className="brand-logo small"><span className="logo-accent">C</span>ASEPROZ</span>
                             <button className="close-drawer" onClick={() => setIsMobileMenuOpen(false)}>
                                 <i className="fas fa-times"></i>
                             </button>

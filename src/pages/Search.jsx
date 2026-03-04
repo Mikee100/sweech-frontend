@@ -217,7 +217,7 @@ const Search = () => {
                                     <div className="icon-wrapper">
                                         <i className="fas fa-shopping-bag"></i>
                                     </div>
-                                    <h3>Explore Sweech</h3>
+                                    <h3>Explore CaseProz</h3>
                                     <p>Use the search bar above to find your favorite products instantly.</p>
                                     <Link to="/" className="btn-primary">START BROWSING</Link>
                                 </div>

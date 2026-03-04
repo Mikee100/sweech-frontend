@@ -24,7 +24,7 @@ const Profile = () => {
                 </p>
                 <h1 style={{ fontSize: '28px', fontWeight: '800', margin: 0 }}>My Profile</h1>
                 <p style={{ color: '#6b7280', marginTop: '8px', fontSize: '14px' }}>
-                    Manage the basic information associated with your Sweech account.
+                    Manage the basic information associated with your CaseProz account.
                 </p>
             </div>
 

@@ -25,7 +25,7 @@ const AdminLayout = () => {
                 zIndex: 1000
             }}>
                 <div style={{ padding: '30px 20px', borderBottom: '1px solid #333' }}>
-                    <h2 style={{ fontSize: '20px', fontWeight: 'bold', letterSpacing: '2px', color: '#E41E26', margin: 0 }}>SWEECH <span style={{ color: 'white', fontSize: '12px' }}>ADMIN</span></h2>
+                    <h2 style={{ fontSize: '20px', fontWeight: 'bold', letterSpacing: '2px', color: '#E41E26', margin: 0 }}>CASEPROZ <span style={{ color: 'white', fontSize: '12px' }}>ADMIN</span></h2>
                 </div>
 
                 <nav style={{ flex: 1, padding: '20px 0' }}>

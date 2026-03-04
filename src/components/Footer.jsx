@@ -6,7 +6,7 @@ const Footer = () => {
             <div className="container">
                 <div className="footer-grid">
                     <div className="footer-col">
-                        <h2 className="logo-text" style={{ color: '#fff', marginBottom: '25px' }}>SWEECH</h2>
+                        <h2 className="logo-text" style={{ color: '#fff', marginBottom: '25px' }}>CASEPROZ</h2>
                         <p>Kenya's coolest online shop for premium electronics, gadgets, and tech accessories. Experience same-day delivery and unbeatable service.</p>
                         <div className="social-links" style={{ display: 'flex', gap: '15px', marginTop: '20px' }}>
                             <a href="#" style={{ color: '#fff', fontSize: '20px' }}><i className="fab fa-facebook"></i></a>
@@ -42,7 +42,7 @@ const Footer = () => {
                     </div>
                 </div>
                 <div className="footer-bottom">
-                    <p>&copy; {new Date().getFullYear()} SWEECH. All rights reserved. | Design Inspired by Sweech.co.ke</p>
+                    <p>&copy; {new Date().getFullYear()} CASEPROZ. All rights reserved. | Design inspired by CaseProz.</p>
                 </div>
             </div>
         </footer>

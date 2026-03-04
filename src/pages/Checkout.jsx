@@ -1,0 +1,232 @@
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useCart } from '../context/CartContext';
+import { useAuth } from '../context/AuthContext';
+
+const Checkout = () => {
+    const { cart, cartTotal, clearCart } = useCart();
+    const { user } = useAuth();
+    const navigate = useNavigate();
+
+    const [address, setAddress] = useState('');
+    const [city, setCity] = useState('');
+    const [postalCode, setPostalCode] = useState('');
+    const [country, setCountry] = useState('Kenya');
+    const [paymentMethod, setPaymentMethod] = useState('M-Pesa');
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState('');
+    const [success, setSuccess] = useState('');
+
+    const shippingPrice = cartTotal > 10000 ? 0 : 500;
+    const taxPrice = cartTotal * 0.16;
+    const totalPrice = cartTotal + shippingPrice + taxPrice;
+
+    useEffect(() => {
+        if (!user) {
+            navigate('/login?redirect=/checkout');
+        }
+        if (cart.length === 0) {
+            navigate('/');
+        }
+    }, [user, navigate, cart]);
+
+    const handlePlaceOrder = async (e) => {
+        e.preventDefault();
+        setLoading(true);
+        setError('');
+        setSuccess('');
+
+        // Frontend validation to ensure required shipping fields are filled
+        if (!address.trim() || !city.trim() || !postalCode.trim() || !country.trim()) {
+            setError('Please fill in your full shipping address before placing the order.');
+            setLoading(false);
+            return;
+        }
+
+        const orderData = {
+            orderItems: cart.map(item => ({
+                name: item.name,
+                qty: item.quantity,
+                image: item.images[0],
+                price: item.price,
+                product: item._id
+            })),
+            shippingAddress: { address, city, postalCode, country },
+            paymentMethod,
+            itemsPrice: cartTotal,
+            shippingPrice,
+            taxPrice,
+            totalPrice
+        };
+
+        try {
+            const response = await fetch('http://localhost:5000/api/orders', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${user.token}`
+                },
+                body: JSON.stringify(orderData)
+            });
+
+            const data = await response.json();
+
+            if (response.ok) {
+                clearCart();
+                setSuccess('Order placed successfully! Redirecting to your order...');
+                // Give the user a moment to see the success message before redirecting
+                setTimeout(() => {
+                    navigate(`/order/${data._id}`);
+                }, 1200);
+            } else {
+                setError(data.message || 'Failed to place order. Please review your details and try again.');
+            }
+        } catch (err) {
+            setError('Something went wrong while placing your order. Please check your connection and try again.');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    if (!user || cart.length === 0) return null;
+
+    return (
+        <div className="checkout-page container" style={{ padding: '60px 0' }}>
+            <h1 style={{ marginBottom: '40px', fontSize: '32px', fontWeight: 'bold' }}>Checkout</h1>
+
+            <div className="checkout-layout">
+                <form onSubmit={handlePlaceOrder}>
+                    <div style={{ backgroundColor: 'white', padding: '30px', borderRadius: '12px', boxShadow: '0 5px 15px rgba(0,0,0,0.05)', marginBottom: '30px' }}>
+                        <h2 style={{ fontSize: '20px', marginBottom: '20px', borderBottom: '1px solid #eee', paddingBottom: '15px' }}>Shipping Information</h2>
+
+                        <div style={{ marginBottom: '20px' }}>
+                            <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: '600' }}>Address</label>
+                            <input type="text" placeholder="Enter address" value={address} onChange={(e) => setAddress(e.target.value)} required style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #ddd' }} />
+                        </div>
+
+                        <div className="checkout-2col" style={{ marginBottom: '20px' }}>
+                            <div>
+                                <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: '600' }}>City</label>
+                                <input type="text" placeholder="Enter city" value={city} onChange={(e) => setCity(e.target.value)} required style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #ddd' }} />
+                            </div>
+                            <div>
+                                <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: '600' }}>Postal Code</label>
+                                <input type="text" placeholder="Enter postal code" value={postalCode} onChange={(e) => setPostalCode(e.target.value)} required style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #ddd' }} />
+                            </div>
+                        </div>
+
+                        <div>
+                            <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: '600' }}>Country</label>
+                            <input type="text" value={country} readOnly style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #ddd', backgroundColor: '#f9f9f9' }} />
+                        </div>
+                    </div>
+
+                    <div style={{ backgroundColor: 'white', padding: '30px', borderRadius: '12px', boxShadow: '0 5px 15px rgba(0,0,0,0.05)' }}>
+                        <h2 style={{ fontSize: '20px', marginBottom: '20px', borderBottom: '1px solid #eee', paddingBottom: '15px' }}>Payment Method</h2>
+                        <div style={{ display: 'flex', gap: '20px' }}>
+                            <label style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer' }}>
+                                <input type="radio" name="payment" value="M-Pesa" checked={paymentMethod === 'M-Pesa'} onChange={(e) => setPaymentMethod(e.target.value)} />
+                                M-Pesa
+                            </label>
+                            <label style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer' }}>
+                                <input type="radio" name="payment" value="CreditCard" checked={paymentMethod === 'CreditCard'} onChange={(e) => setPaymentMethod(e.target.value)} />
+                                Credit Card
+                            </label>
+                        </div>
+                    </div>
+                </form>
+
+                <div className="order-summary">
+                    <div style={{ backgroundColor: 'white', padding: '30px', borderRadius: '12px', boxShadow: '0 5px 15px rgba(0,0,0,0.05)', position: 'sticky', top: '120px' }}>
+                        <h2 style={{ fontSize: '20px', marginBottom: '20px', borderBottom: '1px solid #eee', paddingBottom: '15px' }}>Order Summary</h2>
+
+                        <div style={{ maxHeight: '300px', overflowY: 'auto', marginBottom: '20px' }}>
+                            {cart.map(item => (
+                                <div key={item._id} style={{ display: 'flex', gap: '15px', marginBottom: '15px', paddingBottom: '15px', borderBottom: '1px solid #f9f9f9' }}>
+                                    <img src={item.images[0]} alt={item.name} style={{ width: '50px', height: '50px', objectFit: 'contain' }} />
+                                    <div style={{ flex: 1 }}>
+                                        <p style={{ fontSize: '14px', margin: 0, fontWeight: 'bold' }}>{item.name}</p>
+                                        <p style={{ fontSize: '12px', color: '#666' }}>{item.quantity} x KSh {item.price.toLocaleString()}</p>
+                                    </div>
+                                    <p style={{ fontSize: '14px', fontWeight: 'bold', margin: 0 }}>KSh {(item.quantity * item.price).toLocaleString()}</p>
+                                </div>
+                            ))}
+                        </div>
+
+                        <div style={{ display: 'grid', gap: '10px', marginBottom: '20px', fontSize: '14px' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                <span style={{ color: '#666' }}>Items Subtotal:</span>
+                                <span>KSh {cartTotal.toLocaleString()}</span>
+                            </div>
+                            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                <span style={{ color: '#666' }}>Shipping:</span>
+                                <span>{shippingPrice === 0 ? 'FREE' : `KSh ${shippingPrice.toLocaleString()}`}</span>
+                            </div>
+                            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                <span style={{ color: '#666' }}>Tax (16%):</span>
+                                <span>KSh {taxPrice.toLocaleString()}</span>
+                            </div>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '18px', fontWeight: 'bold', borderTop: '1px solid #eee', paddingTop: '15px', marginTop: '10px', color: '#E41E26' }}>
+                                <span>Total:</span>
+                                <span>KSh {totalPrice.toLocaleString()}</span>
+                            </div>
+                        </div>
+
+                        {success && (
+                            <div
+                                style={{
+                                    backgroundColor: '#ecfdf3',
+                                    color: '#166534',
+                                    border: '1px solid #bbf7d0',
+                                    borderRadius: '8px',
+                                    padding: '10px 12px',
+                                    fontSize: '14px',
+                                    marginBottom: '12px'
+                                }}
+                            >
+                                {success}
+                            </div>
+                        )}
+
+                        {error && (
+                            <div
+                                style={{
+                                    backgroundColor: '#fef2f2',
+                                    color: '#b91c1c',
+                                    border: '1px solid #fecaca',
+                                    borderRadius: '8px',
+                                    padding: '10px 12px',
+                                    fontSize: '14px',
+                                    marginBottom: '12px'
+                                }}
+                            >
+                                {error}
+                            </div>
+                        )}
+
+                        <button
+                            onClick={handlePlaceOrder}
+                            disabled={loading}
+                            style={{
+                                width: '100%',
+                                padding: '15px',
+                                backgroundColor: '#E41E26',
+                                color: 'white',
+                                border: 'none',
+                                borderRadius: '8px',
+                                fontWeight: 'bold',
+                                fontSize: '16px',
+                                cursor: loading ? 'not-allowed' : 'pointer',
+                                opacity: loading ? 0.7 : 1
+                            }}
+                        >
+                            {loading ? 'PLACING ORDER...' : 'PLACE ORDER'}
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+};
+
+export default Checkout;

@@ -14,7 +14,7 @@ const Home = () => {
     useEffect(() => {
         const fetchProducts = async () => {
             try {
-                const response = await fetch('http://localhost:5000/api/products');
+                const response = await fetch(`${import.meta.env.VITE_API_URL}/api/products`);
                 const data = await response.json();
                 // Take only first 8 products for the home page
                 setProducts(data.slice(0, 8));

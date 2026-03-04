@@ -31,7 +31,7 @@ const ProductEdit = () => {
             const fetchProduct = async () => {
                 setLoading(true);
                 try {
-                    const response = await fetch(`http://localhost:5000/api/products/id/${id}`);
+                    const response = await fetch(`${import.meta.env.VITE_API_URL}/api/products/id/${id}`);
                     if (!response.ok) throw new Error('Product not found');
                     const product = await response.json();
 
@@ -65,7 +65,7 @@ const ProductEdit = () => {
         setUploading(true);
 
         try {
-            const response = await fetch('http://localhost:5000/api/upload', {
+            const response = await fetch(`${import.meta.env.VITE_API_URL}/api/upload`, {
                 method: 'POST',
                 body: formData,
             });
@@ -131,8 +131,8 @@ const ProductEdit = () => {
 
         try {
             const url = isEditMode
-                ? `http://localhost:5000/api/products/${id}`
-                : `http://localhost:5000/api/products`;
+                ? `${import.meta.env.VITE_API_URL}/api/products/${id}`
+                : `${import.meta.env.VITE_API_URL}/api/products`;
             const method = isEditMode ? 'PUT' : 'POST';
 
             const response = await fetch(url, {

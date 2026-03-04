@@ -19,7 +19,7 @@ export const FavoritesProvider = ({ children }) => {
 
             setLoading(true);
             try {
-                const response = await fetch('http://localhost:5000/api/users/favourites', {
+                const response = await fetch(`${import.meta.env.VITE_API_URL}/api/users/favourites`, {
                     headers: {
                         Authorization: `Bearer ${user.token}`,
                     },
@@ -52,7 +52,7 @@ export const FavoritesProvider = ({ children }) => {
             let response;
             if (isFavourite(product._id)) {
                 response = await fetch(
-                    `http://localhost:5000/api/users/favourites/${product._id}`,
+                    `${import.meta.env.VITE_API_URL}/api/users/favourites/${product._id}`,
                     {
                         method: 'DELETE',
                         headers: {
@@ -61,7 +61,7 @@ export const FavoritesProvider = ({ children }) => {
                     }
                 );
             } else {
-                response = await fetch('http://localhost:5000/api/users/favourites', {
+                response = await fetch(`${import.meta.env.VITE_API_URL}/api/users/favourites`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',

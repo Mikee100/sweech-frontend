@@ -1,15 +1,30 @@
 import React, { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import CategoryModal from './CategoryModal';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
 import { useFavorites } from '../context/FavoritesContext';
+
+const BRANDS = [
+    'Apple',
+    'Samsung',
+    'Sony',
+    'Dell',
+    'ASUS',
+    'HP',
+    'Lenovo',
+    'Google',
+    'Canon',
+    'Bose',
+    'DJI',
+];
 
 const Header = ({ isCartOpen, setIsCartOpen }) => {
     const { cartCount } = useCart();
     const { user, logout } = useAuth();
     const { favourites } = useFavorites();
     const navigate = useNavigate();
+    const location = useLocation();
     const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [isSticky, setIsSticky] = useState(false);
@@ -33,12 +48,74 @@ const Header = ({ isCartOpen, setIsCartOpen }) => {
         }
     }, [isModalOpen, isMobileMenuOpen, isCartOpen]);
 
+    // Keep header search in sync with the current URL query (?q=...)
+    useEffect(() => {
+        const params = new URLSearchParams(location.search);
+        const qFromUrl = params.get('q') || '';
+        setSearchKeyword((prev) => (prev === qFromUrl ? prev : qFromUrl));
+    }, [location.pathname, location.search]);
+
+    // Instant search (debounced) ONLY when already on /search to avoid excessive calls
+    useEffect(() => {
+        // Only auto-update when user is on the search results page
+        if (location.pathname !== '/search') {
+            return;
+        }
+
+        const handler = setTimeout(() => {
+            const trimmed = searchKeyword.trim();
+            const params = new URLSearchParams(location.search);
+            const currentQ = params.get('q') || '';
+
+            // Require at least 2 characters for auto-search (but allow clearing)
+            if (trimmed && trimmed.length < 2) {
+                return;
+            }
+
+            // Nothing to do if URL already matches the input
+            if (trimmed === currentQ) {
+                return;
+            }
+
+            if (trimmed) {
+                params.set('q', trimmed);
+            } else {
+                params.delete('q');
+            }
+            // Reset page when search term changes
+            params.delete('page');
+
+            const searchString = params.toString();
+            const targetPath = '/search' + (searchString ? `?${searchString}` : '');
+
+            navigate(targetPath, { replace: true });
+        }, 600);
+
+        return () => clearTimeout(handler);
+    }, [searchKeyword, location.pathname, location.search, navigate]);
+
     const handleSearch = (e) => {
         e.preventDefault();
-        if (searchKeyword.trim()) {
-            navigate(`/search?q=${encodeURIComponent(searchKeyword.trim())}`);
-            setSearchKeyword('');
+        const trimmed = searchKeyword.trim();
+        const params = new URLSearchParams(location.search);
+
+        // If nothing typed and nothing in URL, do nothing
+        if (!trimmed && !params.get('q')) {
+            return;
         }
+
+        if (trimmed) {
+            params.set('q', trimmed);
+        } else {
+            params.delete('q');
+        }
+        params.delete('page');
+
+        const searchString = params.toString();
+        const targetPath = '/search' + (searchString ? `?${searchString}` : '');
+        const replace = location.pathname === '/search';
+
+        navigate(targetPath, { replace });
     };
 
     const handleDrawerSearch = (e) => {
@@ -72,9 +149,30 @@ const Header = ({ isCartOpen, setIsCartOpen }) => {
                         <nav className="central-nav">
                             <ul className="nav-list">
                                 <li className="nav-li dropdown-trigger" onClick={() => setIsModalOpen(true)}>
-                                    <button className="nav-link-btn">
+                                    <button type="button" className="nav-link">
                                         <i className="fas fa-th-large"></i> CATEGORIES
                                     </button>
+                                </li>
+                                <li className="nav-li brand-nav">
+                                    <button type="button" className="nav-link">
+                                        <i className="fas fa-tags"></i> SHOP BY BRAND
+                                    </button>
+                                    <div className="brand-mega">
+                                        <div className="brand-mega-inner">
+                                            {BRANDS.map((brand) => (
+                                                <button
+                                                    key={brand}
+                                                    type="button"
+                                                    className="brand-pill"
+                                                    onClick={() => {
+                                                        navigate(`/search?brand=${encodeURIComponent(brand)}`);
+                                                    }}
+                                                >
+                                                    {brand}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
                                 </li>
                                 <li className="nav-li">
                                     <Link to="/" className="nav-link">HOME</Link>
@@ -124,12 +222,12 @@ const Header = ({ isCartOpen, setIsCartOpen }) => {
                                 className="action-ic cart-trigger"
                                 role="button"
                                 tabIndex={0}
-                                aria-label="Open shopping cart"
-                                onClick={() => setIsCartOpen && setIsCartOpen(true)}
+                                aria-label="Go to cart page"
+                                onClick={() => navigate('/cart')}
                                 onKeyDown={(e) => {
                                     if (e.key === 'Enter' || e.key === ' ') {
                                         e.preventDefault();
-                                        setIsCartOpen && setIsCartOpen(true);
+                                        navigate('/cart');
                                     }
                                 }}
                             >
@@ -255,6 +353,23 @@ const Header = ({ isCartOpen, setIsCartOpen }) => {
                                     <i className="fas fa-th-large"></i> CATEGORIES
                                 </button>
                             </li>
+                            <li>
+                                <span style={{ fontSize: '12px', fontWeight: 700, textTransform: 'uppercase', color: '#9ca3af' }}>
+                                    Shop by brand
+                                </span>
+                            </li>
+                            {BRANDS.map((brand) => (
+                                <li key={brand}>
+                                    <button
+                                        onClick={() => {
+                                            setIsMobileMenuOpen(false);
+                                            navigate(`/search?brand=${encodeURIComponent(brand)}`);
+                                        }}
+                                    >
+                                        <i className="fas fa-tags"></i> {brand}
+                                    </button>
+                                </li>
+                            ))}
                             <li><Link to="/favourites" onClick={() => setIsMobileMenuOpen(false)}><i className="far fa-heart"></i> WISHLIST {favourites.length > 0 && <span className="drawer-badge">{favourites.length}</span>}</Link></li>
                             {user ? (
                                 <>

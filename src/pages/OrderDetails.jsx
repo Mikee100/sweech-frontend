@@ -35,9 +35,37 @@ const OrderDetails = () => {
         }
     }, [id, user]);
 
-    if (loading) return <div className="container" style={{ padding: '100px 0', textAlign: 'center' }}>Loading Order...</div>;
+    if (loading)
+        return (
+            <div className="container" style={{ padding: '100px 0', textAlign: 'center' }}>
+                <div className="loading-spinner large"></div>
+                <p style={{ marginTop: '16px', color: '#6b7280', fontSize: '14px' }}>Loading order...</p>
+            </div>
+        );
     if (error) return <div className="container" style={{ padding: '100px 0', textAlign: 'center', color: '#dc2626' }}>{error}</div>;
     if (!order) return null;
+
+    const rawStatus = order.status || (order.isDelivered ? 'delivered' : order.isPaid ? 'processing' : 'pending');
+
+    const statusSteps = [
+        { id: 'pending', label: 'Order placed' },
+        { id: 'confirmed', label: 'Confirmed' },
+        { id: 'processing', label: 'Processing' },
+        { id: 'dispatched', label: 'Dispatched' },
+        { id: 'in_transit', label: 'In transit' },
+        { id: 'out_for_delivery', label: 'Out for delivery' },
+        { id: 'delivered', label: 'Delivered' },
+    ];
+
+    const statusOrder = statusSteps.map((step) => step.id);
+    const currentIndex = statusOrder.indexOf(rawStatus);
+
+    const formatStatusLabel = (status) => {
+        const found = statusSteps.find((s) => s.id === status);
+        if (found) return found.label;
+        if (status === 'cancelled') return 'Cancelled';
+        return 'Pending confirmation';
+    };
 
     return (
         <div className="order-details-page container" style={{ padding: '60px 0' }}>
@@ -49,7 +77,92 @@ const OrderDetails = () => {
 
             <div style={{ backgroundColor: '#fdf2f2', padding: '30px', borderRadius: '12px', marginBottom: '40px', border: '1px solid #fee2e2' }}>
                 <h1 style={{ color: '#E41E26', fontSize: '24px', margin: '0 0 10px 0' }}>Thank you for your order!</h1>
-                <p style={{ color: '#666', margin: 0 }}>Your order has been placed and is being processed.</p>
+                <p style={{ color: '#666', margin: '0 0 16px 0' }}>
+                    Your order is currently:
+                    {' '}
+                    <span style={{ fontWeight: 600 }}>{formatStatusLabel(rawStatus)}</span>
+                    .
+                </p>
+
+                <div style={{ marginTop: '10px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', marginBottom: '8px', color: '#6b7280' }}>
+                        <span>Order timeline</span>
+                        {order.trackingNumber && (
+                            <span>
+                                Tracking:&nbsp;
+                                <strong>{order.trackingNumber}</strong>
+                                {order.carrier && (
+                                    <>
+                                        {' '}via <strong>{order.carrier}</strong>
+                                    </>
+                                )}
+                            </span>
+                        )}
+                    </div>
+                    <div style={{ display: 'flex', gap: '8px', alignItems: 'center', overflowX: 'auto', paddingTop: '4px' }}>
+                        {statusSteps.map((step, index) => {
+                            const isCompleted = currentIndex === -1 ? index === 0 : index <= currentIndex;
+                            const isActive = currentIndex === index || (currentIndex === -1 && index === 0);
+
+                            return (
+                                <div key={step.id} style={{ display: 'flex', alignItems: 'center', minWidth: index === statusSteps.length - 1 ? 'auto' : '0' }}>
+                                    <div
+                                        style={{
+                                            display: 'flex',
+                                            flexDirection: 'column',
+                                            alignItems: 'center',
+                                            gap: '4px',
+                                            minWidth: '80px',
+                                        }}
+                                    >
+                                        <div
+                                            style={{
+                                                width: 18,
+                                                height: 18,
+                                                borderRadius: '999px',
+                                                border: isCompleted ? 'none' : '2px solid #fecaca',
+                                                backgroundColor: isCompleted ? '#E41E26' : '#fff',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                justifyContent: 'center',
+                                                color: '#fff',
+                                                fontSize: '10px',
+                                                boxShadow: isActive ? '0 0 0 4px rgba(220, 38, 38, 0.15)' : 'none',
+                                            }}
+                                        >
+                                            {isCompleted ? <i className="fas fa-check" style={{ fontSize: '9px' }}></i> : ''}
+                                        </div>
+                                        <span
+                                            style={{
+                                                fontSize: '11px',
+                                                color: isCompleted ? '#b91c1c' : '#9ca3af',
+                                                textAlign: 'center',
+                                                maxWidth: 80,
+                                            }}
+                                        >
+                                            {step.label}
+                                        </span>
+                                    </div>
+                                    {index < statusSteps.length - 1 && (
+                                        <div
+                                            style={{
+                                                flex: 1,
+                                                height: 2,
+                                                background: `linear-gradient(to right, ${
+                                                    index < currentIndex || currentIndex === -1
+                                                        ? '#E41E26'
+                                                        : '#fee2e2'
+                                                } , #fee2e2)`,
+                                                margin: '0 4px',
+                                                minWidth: 24,
+                                            }}
+                                        />
+                                    )}
+                                </div>
+                            );
+                        })}
+                    </div>
+                </div>
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 350px', gap: '40px' }}>
@@ -103,7 +216,12 @@ const OrderDetails = () => {
 
                         <div style={{ marginTop: '30px', padding: '15px', backgroundColor: '#f9f9f9', borderRadius: '8px', fontSize: '14px' }}>
                             <p style={{ margin: '0 0 10px 0' }}><strong>Payment Method:</strong> {order.paymentMethod}</p>
-                            <p style={{ margin: 0 }}><strong>Status:</strong> <span style={{ color: order.isPaid ? 'green' : 'orange' }}>{order.isPaid ? 'Paid' : 'Pending Payment'}</span></p>
+                            <p style={{ margin: 0 }}>
+                                <strong>Order status:</strong>{' '}
+                                <span style={{ color: rawStatus === 'cancelled' ? '#b91c1c' : '#16a34a' }}>
+                                    {formatStatusLabel(rawStatus)}
+                                </span>
+                            </p>
                         </div>
                     </div>
                 </div>

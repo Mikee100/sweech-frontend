@@ -1,0 +1,119 @@
+import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
+import { useAuth } from '../../context/AuthContext';
+
+const UserList = () => {
+    const { user } = useAuth();
+    const [users, setUsers] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState('');
+
+    useEffect(() => {
+        const fetchUsers = async () => {
+            try {
+                const response = await fetch(`${import.meta.env.VITE_API_URL}/api/users`, {
+                    headers: {
+                        Authorization: `Bearer ${user.token}`
+                    }
+                });
+                const data = await response.json();
+                if (response.ok) {
+                    setUsers(data);
+                } else {
+                    setError(data.message || 'Failed to fetch users');
+                }
+            } catch (err) {
+                setError('Something went wrong. Could not load users.');
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        if (user && user.isAdmin) {
+            fetchUsers();
+        }
+    }, [user]);
+
+    const deleteHandler = async (id) => {
+        if (window.confirm('Are you sure you want to delete this user?')) {
+            try {
+                const response = await fetch(`${import.meta.env.VITE_API_URL}/api/users/${id}`, {
+                    method: 'DELETE',
+                    headers: {
+                        Authorization: `Bearer ${user.token}`
+                    }
+                });
+                if (response.ok) {
+                    setUsers(users.filter(u => u._id !== id));
+                } else {
+                    const data = await response.json();
+                    alert(data.message || 'Failed to delete user');
+                }
+            } catch (err) {
+                alert('Something went wrong while deleting user.');
+            }
+        }
+    };
+
+    if (loading)
+        return (
+            <div style={{ padding: '80px 0', textAlign: 'center', color: '#6b7280' }}>
+                <div className="loading-spinner large"></div>
+                <p style={{ marginTop: '16px', fontSize: '14px' }}>Loading users...</p>
+            </div>
+        );
+    if (error) return <div style={{ color: 'red' }}>{error}</div>;
+
+    return (
+        <div>
+            <h1 style={{ fontSize: '28px', marginBottom: '30px', color: '#333' }}>Users</h1>
+
+            <div style={{ backgroundColor: 'white', padding: '25px', borderRadius: '10px', boxShadow: '0 4px 6px rgba(0,0,0,0.05)', overflowX: 'auto' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+                    <thead>
+                        <tr style={{ borderBottom: '2px solid #eee' }}>
+                            <th style={{ padding: '12px', color: '#666', fontSize: '14px' }}>ID</th>
+                            <th style={{ padding: '12px', color: '#666', fontSize: '14px' }}>NAME</th>
+                            <th style={{ padding: '12px', color: '#666', fontSize: '14px' }}>EMAIL</th>
+                            <th style={{ padding: '12px', color: '#666', fontSize: '14px' }}>ADMIN</th>
+                            <th style={{ padding: '12px', color: '#666', fontSize: '14px' }}>ACTIONS</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {users.map((currentUser) => (
+                            <tr key={currentUser._id} style={{ borderBottom: '1px solid #eee' }}>
+                                <td style={{ padding: '12px', fontSize: '14px', color: '#333' }}>{currentUser._id}</td>
+                                <td style={{ padding: '12px', fontSize: '14px', color: '#333' }}>{currentUser.name}</td>
+                                <td style={{ padding: '12px', fontSize: '14px', color: '#333' }}>
+                                    <a href={`mailto:${currentUser.email}`} style={{ color: '#3b82f6', textDecoration: 'none' }}>{currentUser.email}</a>
+                                </td>
+                                <td style={{ padding: '12px', fontSize: '14px' }}>
+                                    {currentUser.isAdmin ? (
+                                        <i className="fas fa-check" style={{ color: '#10b981' }}></i>
+                                    ) : (
+                                        <i className="fas fa-times" style={{ color: '#ef4444' }}></i>
+                                    )}
+                                </td>
+                                <td style={{ padding: '12px', fontSize: '14px' }}>
+                                    <div style={{ display: 'flex', gap: '10px' }}>
+                                        <Link to={`/admin/user/${currentUser._id}/edit`} style={{ padding: '6px 12px', backgroundColor: '#f3f4f6', color: '#374151', borderRadius: '4px', textDecoration: 'none', fontSize: '12px' }}>
+                                            <i className="fas fa-edit"></i> Edit
+                                        </Link>
+                                        <button
+                                            onClick={() => deleteHandler(currentUser._id)}
+                                            style={{ padding: '6px 12px', backgroundColor: '#fee2e2', color: '#dc2626', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '12px' }}
+                                        >
+                                            <i className="fas fa-trash"></i> Delete
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                        ))}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    );
+};
+
+export default UserList;

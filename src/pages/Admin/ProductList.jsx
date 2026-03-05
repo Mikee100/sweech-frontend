@@ -136,7 +136,13 @@ const ProductList = () => {
         }
     };
 
-    if (loading) return <div style={{ padding: '100px', textAlign: 'center', color: '#666' }}>Loading Products...</div>;
+    if (loading)
+        return (
+            <div style={{ padding: '100px 0', textAlign: 'center', color: '#6b7280' }}>
+                <div className="loading-spinner large"></div>
+                <p style={{ marginTop: '16px', fontSize: '14px' }}>Loading products...</p>
+            </div>
+        );
 
     return (
         <div style={styles.container}>

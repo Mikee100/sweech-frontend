@@ -1,6 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 
+const slugify = (value = '') =>
+    value
+        .toString()
+        .toLowerCase()
+        .trim()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-+|-+$/g, '');
+
 const Category = () => {
     const { categoryName } = useParams();
     const [products, setProducts] = useState([]);
@@ -14,12 +22,63 @@ const Category = () => {
                 const response = await fetch(`${import.meta.env.VITE_API_URL}/api/products`);
                 const data = await response.json();
 
-                // Filter products by category or subcategory
-                // We'll be flexible: check if categoryName matches category OR subCategory
-                const filtered = data.filter(p =>
-                    p.category?.toLowerCase() === categoryName?.toLowerCase() ||
-                    p.subCategory?.replace(/ /g, '-').toLowerCase() === categoryName?.toLowerCase()
-                );
+                const targetSlug = slugify(categoryName || '');
+
+                const filtered = data.filter((p) => {
+                    const categorySlug = slugify(p.category);
+                    const subCategorySlug = slugify(p.subCategory);
+
+                    // Direct matches on category or subcategory
+                    if (categorySlug === targetSlug || subCategorySlug === targetSlug) {
+                        return true;
+                    }
+
+                    // Friendly aliases for umbrella URLs from the category modal
+                    if (targetSlug === 'smart-watches') {
+                        // Group all wearable watches under "Smart watches"
+                        return (
+                            categorySlug === 'wearables' ||
+                            subCategorySlug.includes('watch')
+                        );
+                    }
+
+                    if (targetSlug === 'cables') {
+                        // Map "Cables" to "Cables & Adapters"
+                        return (
+                            categorySlug === 'accessories' &&
+                            subCategorySlug.includes('cables-adapters')
+                        );
+                    }
+
+                    if (targetSlug === 'cases') {
+                        // Map "Cases" to "Cases & Covers"
+                        return (
+                            categorySlug === 'accessories' &&
+                            subCategorySlug.includes('cases-covers')
+                        );
+                    }
+
+                    if (targetSlug === 'chargers') {
+                        // Treat "Chargers" as power-related accessories
+                        return (
+                            categorySlug === 'accessories' &&
+                            (subCategorySlug.includes('power') ||
+                                subCategorySlug.includes('power-banks'))
+                        );
+                    }
+
+                    if (targetSlug === 'screen-protectors') {
+                        // Map "Screen protectors" to protective accessories like cases & covers / phone accessories
+                        return (
+                            (categorySlug === 'accessories' &&
+                                subCategorySlug.includes('cases-covers')) ||
+                            (categorySlug === 'phones-tablets' &&
+                                subCategorySlug.includes('phone-accessories'))
+                        );
+                    }
+
+                    return false;
+                });
 
                 setProducts(filtered);
                 setLoading(false);
@@ -32,9 +91,17 @@ const Category = () => {
         fetchProducts();
     }, [categoryName]);
 
-    if (loading) return <div className="container" style={{ padding: '100px 0', textAlign: 'center' }}>Loading...</div>;
+    if (loading)
+        return (
+            <div className="container" style={{ padding: '100px 0', textAlign: 'center' }}>
+                <div className="loading-spinner large"></div>
+                <p style={{ marginTop: '16px', color: '#6b7280', fontSize: '14px' }}>Loading category...</p>
+            </div>
+        );
 
-    const formattedTitle = categoryName.charAt(0).toUpperCase() + categoryName.slice(1).replace(/-/g, ' ');
+    const formattedTitle =
+        categoryName.charAt(0).toUpperCase() +
+        categoryName.slice(1).replace(/-/g, ' ');
 
     return (
         <div className="category-page container" style={{ padding: '40px 0' }}>
@@ -47,7 +114,23 @@ const Category = () => {
                 {formattedTitle}
             </h1>
 
-            {products.length === 0 ? (
+            {error ? (
+                <div style={{ textAlign: 'center', padding: '100px 0', color: '#e1261c' }}>
+                    <h3>{error}</h3>
+                    <Link
+                        to="/search"
+                        style={{
+                            color: '#E41E26',
+                            textDecoration: 'none',
+                            fontWeight: 'bold',
+                            marginTop: '20px',
+                            display: 'inline-block',
+                        }}
+                    >
+                        Browse all products
+                    </Link>
+                </div>
+            ) : products.length === 0 ? (
                 <div style={{ textAlign: 'center', padding: '100px 0', color: '#666' }}>
                     <h3>No products found in this category.</h3>
                     <Link to="/" style={{ color: '#E41E26', textDecoration: 'none', fontWeight: 'bold', marginTop: '20px', display: 'inline-block' }}>Continue Shopping</Link>

@@ -1,9 +1,16 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { useLocation, Link } from 'react-router-dom';
+import { useLocation, useNavigate, Link } from 'react-router-dom';
 import ProductCard from '../components/ProductCard';
 import SkeletonProduct from '../components/SkeletonProduct';
 import SearchFilters from '../components/SearchFilters';
 import { SlidersHorizontal, X } from 'lucide-react';
+
+const POPULAR_BRANDS = ['Apple', 'Samsung', 'Sony', 'Dell', 'ASUS', 'HP', 'Lenovo'];
+const POPULAR_CATEGORY_QUERIES = [
+    { label: 'Phones & Tablets', query: 'phone' },
+    { label: 'Laptops & Computers', query: 'laptop' },
+    { label: 'Accessories', query: 'accessories' },
+];
 
 const Search = () => {
     const [products, setProducts] = useState([]);
@@ -11,6 +18,7 @@ const Search = () => {
     const [error, setError] = useState('');
     const [selectedCategory, setSelectedCategory] = useState('');
     const [priceRange, setPriceRange] = useState({ min: '', max: '' });
+    const [selectedBrand, setSelectedBrand] = useState('');
     const [sort, setSort] = useState('newest');
     const [page, setPage] = useState(1);
     const [pages, setPages] = useState(1);
@@ -18,20 +26,72 @@ const Search = () => {
     const [isFilterOpen, setIsFilterOpen] = useState(false);
 
     const location = useLocation();
+    const navigate = useNavigate();
 
-    // Parse query parameter ?q=...
+    // Parse query parameters ?q=..., ?category=..., ?subCategory=..., ?minPrice=..., ?maxPrice=..., ?sort=...
     const queryParams = new URLSearchParams(location.search);
     const q = queryParams.get('q') || '';
+    const categoryParam = queryParams.get('category') || '';
+    const subCategoryParam = queryParams.get('subCategory') || '';
+    const brandParam = queryParams.get('brand') || '';
+    const minPriceParam = queryParams.get('minPrice') || '';
+    const maxPriceParam = queryParams.get('maxPrice') || '';
+    const sortParamFromUrl = queryParams.get('sort') || '';
     const hasQuery = q.trim().length > 0;
 
+    // Keep selectedCategory in sync when landing on URLs like /search?category=...
     useEffect(() => {
-        if (!hasQuery) {
+        if (categoryParam && !selectedCategory) {
+            setSelectedCategory(categoryParam);
+        }
+    }, [categoryParam, selectedCategory]);
+
+    // Keep selectedBrand in sync when landing on URLs like /search?brand=...
+    useEffect(() => {
+        if (brandParam && !selectedBrand) {
+            setSelectedBrand(brandParam);
+        }
+    }, [brandParam, selectedBrand]);
+
+    // Initialise price range from URL on first load (e.g. /search?minPrice=...&maxPrice=...)
+    useEffect(() => {
+        if ((minPriceParam || maxPriceParam) && priceRange.min === '' && priceRange.max === '') {
+            setPriceRange({
+                min: minPriceParam || '',
+                max: maxPriceParam || '',
+            });
+        }
+    }, [minPriceParam, maxPriceParam, priceRange.min, priceRange.max]);
+
+    // When page changes, jump back to top of the page (no animated scroll)
+    useEffect(() => {
+        window.scrollTo(0, 0);
+    }, [page]);
+
+    useEffect(() => {
+        const activeCategory = selectedCategory || categoryParam;
+        const activeSubCategory = subCategoryParam;
+        const activeBrand = selectedBrand || brandParam;
+
+        const hasAnyFilter =
+            hasQuery ||
+            !!activeCategory ||
+            !!activeSubCategory ||
+            !!activeBrand ||
+            priceRange.min !== '' ||
+            priceRange.max !== '' ||
+            !!sortParamFromUrl;
+
+        if (!hasAnyFilter) {
             setProducts([]);
             setTotal(0);
             setPages(1);
+            setError('');
             setLoading(false);
             return;
         }
+
+        const controller = new AbortController();
 
         const fetchSearchResults = async () => {
             setLoading(true);
@@ -39,12 +99,23 @@ const Search = () => {
 
             try {
                 const params = new URLSearchParams();
-                params.append('keyword', q);
+
+                if (hasQuery) {
+                    params.append('keyword', q);
+                }
                 params.append('page', String(page));
                 params.append('pageSize', '12');
 
-                if (selectedCategory) {
-                    params.append('category', selectedCategory);
+                if (activeCategory) {
+                    params.append('category', activeCategory);
+                }
+
+                if (activeSubCategory) {
+                    params.append('subCategory', activeSubCategory);
+                }
+
+                if (activeBrand) {
+                    params.append('brand', activeBrand);
                 }
 
                 if (priceRange.min) {
@@ -65,7 +136,10 @@ const Search = () => {
                 const sortParam = sortMap[sort] || 'newest';
                 params.append('sort', sortParam);
 
-                const response = await fetch(`${import.meta.env.VITE_API_URL}/api/products?${params.toString()}`);
+                const response = await fetch(
+                    `${import.meta.env.VITE_API_URL}/api/products?${params.toString()}`,
+                    { signal: controller.signal }
+                );
                 const data = await response.json();
 
                 if (response.ok) {
@@ -82,6 +156,9 @@ const Search = () => {
                     setError(data.message || 'Failed to fetch search results');
                 }
             } catch (err) {
+                if (err.name === 'AbortError') {
+                    return;
+                }
                 setError('Failed to fetch search results');
             } finally {
                 setLoading(false);
@@ -89,12 +166,34 @@ const Search = () => {
         };
 
         fetchSearchResults();
-    }, [q, hasQuery, page, selectedCategory, priceRange.min, priceRange.max, sort]);
+
+        return () => {
+            controller.abort();
+        };
+    }, [
+        q,
+        hasQuery,
+        page,
+        selectedCategory,
+        priceRange.min,
+        priceRange.max,
+        sort,
+        categoryParam,
+        subCategoryParam,
+        selectedBrand,
+        brandParam,
+        sortParamFromUrl,
+    ]);
 
     // Derived data for filters (based on currently loaded page)
     const categories = useMemo(() => {
-        const cats = products.map(p => p.category).filter(Boolean);
+        const cats = products.map((p) => p.category).filter(Boolean);
         return [...new Set(cats)];
+    }, [products]);
+
+    const brands = useMemo(() => {
+        const bs = products.map((p) => p.brand).filter(Boolean);
+        return [...new Set(bs)];
     }, [products]);
 
     const handlePriceChange = (type, value) => {
@@ -107,10 +206,33 @@ const Search = () => {
         setPage(1);
     };
 
+    const handleBrandChange = (value) => {
+        setSelectedBrand(value);
+        setPage(1);
+    };
+
     const handleSortChange = (value) => {
         setSort(value);
         setPage(1);
     };
+
+    const hasCriteriaFromUrl =
+        hasQuery ||
+        !!categoryParam ||
+        !!subCategoryParam ||
+        !!brandParam ||
+        !!minPriceParam ||
+        !!maxPriceParam ||
+        !!sortParamFromUrl;
+    const hasAnyFilters =
+        hasCriteriaFromUrl ||
+        !!selectedCategory ||
+        !!selectedBrand ||
+        priceRange.min !== '' ||
+        priceRange.max !== '';
+
+    const isInitialLoading = loading && products.length === 0;
+    const isRefetching = loading && products.length > 0;
 
     return (
         <div className="search-page">
@@ -123,12 +245,26 @@ const Search = () => {
                                 <>
                                     Search results for <span className="highlight">"{q}"</span>
                                 </>
+                            ) : categoryParam ? (
+                                <>
+                                    Browsing category{' '}
+                                    <span className="highlight">"{categoryParam}"</span>
+                                </>
+                            ) : subCategoryParam ? (
+                                <>
+                                    Browsing <span className="highlight">"{subCategoryParam}"</span>
+                                </>
+                            ) : brandParam ? (
+                                <>
+                                    Browsing brand{' '}
+                                    <span className="highlight">"{brandParam}"</span>
+                                </>
                             ) : (
                                 'Discover our collection'
                             )}
                         </h1>
                         <p className="subtitle">
-                            {hasQuery
+                            {hasCriteriaFromUrl
                                 ? `Showing ${total} ${total === 1 ? 'match' : 'matches'} for your search criteria.`
                                 : 'Explore our wide range of premium electronics and accessories.'}
                         </p>
@@ -138,7 +274,7 @@ const Search = () => {
 
             <section className="search-results-section">
                 <div className="container">
-                    {hasQuery && (
+                    {hasAnyFilters && (
                         <button
                             className="mobile-filter-toggle"
                             onClick={() => setIsFilterOpen(!isFilterOpen)}
@@ -149,12 +285,15 @@ const Search = () => {
                         </button>
                     )}
                     <div className="search-container">
-                        {hasQuery && (
+                        {hasAnyFilters && (
                             <div className={`filter-sidebar-wrap ${isFilterOpen ? 'filter-open' : ''}`}>
                                 <SearchFilters
                                     categories={categories}
+                                    brands={brands}
                                     selectedCategory={selectedCategory}
+                                    selectedBrand={selectedBrand}
                                     onCategoryChange={handleCategoryChange}
+                                    onBrandChange={handleBrandChange}
                                     priceRange={priceRange}
                                     onPriceChange={handlePriceChange}
                                     sort={sort}
@@ -164,10 +303,15 @@ const Search = () => {
                         )}
 
                         <main className="search-main">
-                            {hasQuery && !loading && (
+                            {hasAnyFilters && !isInitialLoading && (
                                 <div className="search-controls">
                                     <div className="results-count">
                                         Showing <span>{products.length}</span> of <span>{total}</span> products
+                                        {isRefetching && (
+                                            <span style={{ marginLeft: 8, fontSize: 12, color: '#9ca3af' }}>
+                                                Updating results…
+                                            </span>
+                                        )}
                                     </div>
                                     <div className="sort-wrapper">
                                         <label>Sort by:</label>
@@ -181,34 +325,76 @@ const Search = () => {
                                 </div>
                             )}
 
-                            {loading && hasQuery ? (
+                            {isInitialLoading && hasAnyFilters ? (
                                 <div className="product-grid">
-                                    {[...Array(6)].map((_, i) => (
+                                    {[...Array(12)].map((_, i) => (
                                         <SkeletonProduct key={i} />
                                     ))}
                                 </div>
-                            ) : error && hasQuery ? (
+                            ) : error && hasAnyFilters ? (
                                 <div className="search-state center error">
                                     <i className="fas fa-exclamation-circle"></i>
                                     <p>{error}</p>
                                 </div>
-                            ) : hasQuery && products.length === 0 ? (
+                            ) : hasAnyFilters && products.length === 0 ? (
                                 <div className="search-state center empty animate-in">
                                     <div className="icon-wrapper">
                                         <i className="fas fa-search"></i>
                                     </div>
                                     <h3>No matches found</h3>
                                     <p>We couldn't find any products matching your filters. Try adjusting your search or filters.</p>
-                                    <button onClick={() => {
-                                        setSelectedCategory('');
-                                        setPriceRange({ min: '', max: '' });
-                                    }} className="btn-primary">CLEAR FILTERS</button>
+                                    <div className="search-suggestions">
+                                        <p className="suggestion-title">Try one of these popular brands</p>
+                                        <div className="suggestion-chips">
+                                            {POPULAR_BRANDS.map((brand) => (
+                                                <button
+                                                    key={brand}
+                                                    type="button"
+                                                    className="suggestion-chip"
+                                                    onClick={() =>
+                                                        navigate(`/search?brand=${encodeURIComponent(brand)}`)
+                                                    }
+                                                >
+                                                    {brand}
+                                                </button>
+                                            ))}
+                                        </div>
+                                        <p className="suggestion-title">Or explore a popular category</p>
+                                        <div className="suggestion-chips">
+                                            {POPULAR_CATEGORY_QUERIES.map((item) => (
+                                                <button
+                                                    key={item.label}
+                                                    type="button"
+                                                    className="suggestion-chip"
+                                                    onClick={() =>
+                                                        navigate(`/search?q=${encodeURIComponent(item.query)}`)
+                                                    }
+                                                >
+                                                    {item.label}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+                                    <button
+                                        onClick={() => {
+                                            setSelectedCategory('');
+                                            setSelectedBrand('');
+                                            setPriceRange({ min: '', max: '' });
+                                        }}
+                                        className="btn-primary"
+                                        style={{ marginTop: '16px' }}
+                                    >
+                                        CLEAR FILTERS
+                                    </button>
                                 </div>
-                            ) : hasQuery ? (
+                            ) : hasAnyFilters ? (
                                 <div className="product-grid">
                                     {products.map((product, index) => (
                                         <div key={product._id} className={`animate-in stagger-${(index % 6) + 1}`}>
-                                            <ProductCard product={product} />
+                                            <ProductCard
+                                                product={product}
+                                                highlightQuery={hasQuery ? q : ''}
+                                            />
                                         </div>
                                     ))}
                                 </div>
@@ -223,7 +409,7 @@ const Search = () => {
                                 </div>
                             )}
 
-                            {hasQuery && !loading && total > 0 && pages > 1 && (
+                            {hasAnyFilters && !loading && total > 0 && pages > 1 && (
                                 <nav
                                     className="pagination"
                                     aria-label="Search results pages"

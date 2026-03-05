@@ -64,7 +64,13 @@ const ProductDetails = () => {
         toggleFavourite(product);
     };
 
-    if (loading) return <div className="container" style={{ padding: '100px 0', textAlign: 'center' }}>Loading...</div>;
+    if (loading)
+        return (
+            <div className="container" style={{ padding: '100px 0', textAlign: 'center' }}>
+                <div className="loading-spinner large"></div>
+                <p style={{ marginTop: '16px', color: '#6b7280', fontSize: '14px' }}>Loading product...</p>
+            </div>
+        );
     if (error) return <div className="container" style={{ padding: '100px 0', textAlign: 'center' }}>{error}</div>;
     if (!product) return null;
 

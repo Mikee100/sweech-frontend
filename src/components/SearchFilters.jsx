@@ -1,6 +1,17 @@
 import React from 'react';
 
-const SearchFilters = ({ categories, selectedCategory, onCategoryChange, priceRange, onPriceChange, sort, onSortChange }) => {
+const SearchFilters = ({
+    categories,
+    brands,
+    selectedCategory,
+    selectedBrand,
+    onCategoryChange,
+    onBrandChange,
+    priceRange,
+    onPriceChange,
+    sort,
+    onSortChange,
+}) => {
     return (
         <aside className="filter-sidebar">
             <div className="filter-section">
@@ -26,7 +37,7 @@ const SearchFilters = ({ categories, selectedCategory, onCategoryChange, priceRa
                         />
                         All Categories
                     </label>
-                    {categories.map(cat => (
+                    {categories.map((cat) => (
                         <label key={cat} className="filter-item">
                             <input
                                 type="checkbox"
@@ -38,6 +49,32 @@ const SearchFilters = ({ categories, selectedCategory, onCategoryChange, priceRa
                     ))}
                 </div>
             </div>
+
+            {brands.length > 0 && (
+                <div className="filter-section">
+                    <h3 className="filter-title">Brands</h3>
+                    <div className="filter-list">
+                        <label className="filter-item">
+                            <input
+                                type="checkbox"
+                                checked={selectedBrand === ''}
+                                onChange={() => onBrandChange('')}
+                            />
+                            All Brands
+                        </label>
+                        {brands.map((brand) => (
+                            <label key={brand} className="filter-item">
+                                <input
+                                    type="checkbox"
+                                    checked={selectedBrand === brand}
+                                    onChange={() => onBrandChange(brand)}
+                                />
+                                {brand}
+                            </label>
+                        ))}
+                    </div>
+                </div>
+            )}
 
             <div className="filter-section">
                 <h3 className="filter-title">Price Range</h3>

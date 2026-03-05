@@ -4,7 +4,24 @@ import { useCart } from '../context/CartContext';
 import { useFavorites } from '../context/FavoritesContext';
 import { useAuth } from '../context/AuthContext';
 
-const ProductCard = ({ product }) => {
+const highlightText = (text, query) => {
+    if (!query || !text) return text;
+    const escaped = query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const regex = new RegExp(`(${escaped})`, 'ig');
+    const parts = text.split(regex);
+
+    return parts.map((part, index) =>
+        part.toLowerCase() === query.toLowerCase() ? (
+            <mark key={index} className="search-highlight">
+                {part}
+            </mark>
+        ) : (
+            part
+        )
+    );
+};
+
+const ProductCard = ({ product, highlightQuery }) => {
     const { addToCart } = useCart();
     const { favourites, isFavourite, toggleFavourite } = useFavorites();
     const { user } = useAuth();
@@ -36,7 +53,13 @@ const ProductCard = ({ product }) => {
         <div className="product-card">
             <Link to={`/product/${product.slug}`} style={{ textDecoration: 'none', color: 'inherit' }}>
                 <div className="product-image-wrapper">
-                    <img src={product.images[0] || 'https://via.placeholder.com/300'} alt={product.name} />
+                    <img
+                        src={
+                            product.images[0] ||
+                            'https://images.unsplash.com/photo-1517336714731-489689fd1ca8?q=80&w=800&auto=format&fit=crop'
+                        }
+                        alt={product.name}
+                    />
                     {product.onSale && <span className="badge sale">Sale!</span>}
                     {product.stock <= 0 && <span className="badge out-of-stock">Out of Stock</span>}
                     <div className="product-actions">
@@ -52,8 +75,12 @@ const ProductCard = ({ product }) => {
             </Link>
             <div className="product-info">
                 <Link to={`/product/${product.slug}`} style={{ textDecoration: 'none', color: 'inherit' }}>
-                    <p className="product-category">{product.category || 'Electronics'}</p>
-                    <h3 className="product-title">{product.name}</h3>
+                    <p className="product-category">
+                        {highlightText(product.category || 'Electronics', highlightQuery)}
+                    </p>
+                    <h3 className="product-title">
+                        {highlightText(product.name, highlightQuery)}
+                    </h3>
                 </Link>
                 <div className="product-price">
                     {product.originalPrice && <span className="original-price">Ksh {product.originalPrice.toLocaleString()}</span>}

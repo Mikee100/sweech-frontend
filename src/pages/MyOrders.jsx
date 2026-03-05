@@ -42,6 +42,63 @@ const MyOrders = () => {
         return null;
     }
 
+    const getStatusInfo = (order) => {
+        // Fallback for older orders without an explicit status
+        const rawStatus = order.status || (order.isDelivered ? 'delivered' : order.isPaid ? 'processing' : 'pending');
+
+        switch (rawStatus) {
+            case 'confirmed':
+                return {
+                    label: 'Confirmed',
+                    bg: '#e0f2fe',
+                    fg: '#075985',
+                };
+            case 'processing':
+                return {
+                    label: 'Processing',
+                    bg: '#e0f2fe',
+                    fg: '#075985',
+                };
+            case 'dispatched':
+                return {
+                    label: 'Dispatched',
+                    bg: '#eef2ff',
+                    fg: '#3730a3',
+                };
+            case 'in_transit':
+                return {
+                    label: 'In transit',
+                    bg: '#eff6ff',
+                    fg: '#1d4ed8',
+                };
+            case 'out_for_delivery':
+                return {
+                    label: 'Out for delivery',
+                    bg: '#dcfce7',
+                    fg: '#166534',
+                };
+            case 'delivered':
+                return {
+                    label: 'Delivered',
+                    bg: '#dcfce7',
+                    fg: '#166534',
+                };
+            case 'cancelled':
+                return {
+                    label: 'Cancelled',
+                    bg: '#fee2e2',
+                    fg: '#b91c1c',
+                };
+            case 'pending':
+            default:
+                return {
+                    label: 'Pending confirmation',
+                    bg: '#fef3c7',
+                    fg: '#92400e',
+                };
+        }
+    };
+
     return (
         <div className="container" style={{ padding: '60px 0', maxWidth: '1100px' }}>
             <div style={{ marginBottom: '30px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', gap: '16px' }}>
@@ -117,28 +174,33 @@ const MyOrders = () => {
                                         KSh {order.totalPrice.toLocaleString()}
                                     </span>
                                     <span>
-                                        <span
-                                            style={{
-                                                display: 'inline-flex',
-                                                alignItems: 'center',
-                                                gap: '6px',
-                                                padding: '4px 10px',
-                                                borderRadius: '999px',
-                                                fontSize: '12px',
-                                                backgroundColor: order.isDelivered ? '#dcfce7' : order.isPaid ? '#e0f2fe' : '#fef3c7',
-                                                color: order.isDelivered ? '#166534' : order.isPaid ? '#075985' : '#92400e',
-                                            }}
-                                        >
-                                            <span
-                                                style={{
-                                                    width: '6px',
-                                                    height: '6px',
-                                                    borderRadius: '999px',
-                                                    backgroundColor: 'currentColor',
-                                                }}
-                                            ></span>
-                                            {order.isDelivered ? 'Delivered' : order.isPaid ? 'Paid' : 'Pending'}
-                                        </span>
+                                        {(() => {
+                                            const statusInfo = getStatusInfo(order);
+                                            return (
+                                                <span
+                                                    style={{
+                                                        display: 'inline-flex',
+                                                        alignItems: 'center',
+                                                        gap: '6px',
+                                                        padding: '4px 10px',
+                                                        borderRadius: '999px',
+                                                        fontSize: '12px',
+                                                        backgroundColor: statusInfo.bg,
+                                                        color: statusInfo.fg,
+                                                    }}
+                                                >
+                                                    <span
+                                                        style={{
+                                                            width: '6px',
+                                                            height: '6px',
+                                                            borderRadius: '999px',
+                                                            backgroundColor: 'currentColor',
+                                                        }}
+                                                    ></span>
+                                                    {statusInfo.label}
+                                                </span>
+                                            );
+                                        })()}
                                     </span>
                                     <div style={{ textAlign: 'right' }}>
                                         <Link

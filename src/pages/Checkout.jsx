@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
+import { SHIPPING_ZONES } from '../constants/shippingZones';
 
 const Checkout = () => {
     const { cart, cartTotal, clearCart } = useCart();
@@ -17,7 +18,15 @@ const Checkout = () => {
     const [error, setError] = useState('');
     const [success, setSuccess] = useState('');
 
-    const shippingPrice = cartTotal > 10000 ? 0 : 500;
+    const [selectedZoneId] = useState(() => {
+        const stored = localStorage.getItem('shippingZoneId');
+        return stored || SHIPPING_ZONES[0].id;
+    });
+
+    const selectedZone =
+        SHIPPING_ZONES.find((zone) => zone.id === selectedZoneId) || SHIPPING_ZONES[0];
+
+    const shippingPrice = selectedZone.price;
     const taxPrice = cartTotal * 0.16;
     const totalPrice = cartTotal + shippingPrice + taxPrice;
 
@@ -159,8 +168,8 @@ const Checkout = () => {
                                 <span>KSh {cartTotal.toLocaleString()}</span>
                             </div>
                             <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                                <span style={{ color: '#666' }}>Shipping:</span>
-                                <span>{shippingPrice === 0 ? 'FREE' : `KSh ${shippingPrice.toLocaleString()}`}</span>
+                                <span style={{ color: '#666' }}>Shipping ({selectedZone.label}):</span>
+                                <span>{shippingPrice === 0 ? 'Pick up (Free)' : `KSh ${shippingPrice.toLocaleString()}`}</span>
                             </div>
                             <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                                 <span style={{ color: '#666' }}>Tax (16%):</span>

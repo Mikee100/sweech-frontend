@@ -74,6 +74,13 @@ const ProductDetails = () => {
     if (error) return <div className="container" style={{ padding: '100px 0', textAlign: 'center' }}>{error}</div>;
     if (!product) return null;
 
+    const hasDiscount =
+        typeof product.originalPrice === 'number' &&
+        product.originalPrice > product.price;
+    const discountPercent = hasDiscount
+        ? Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100)
+        : null;
+
     return (
         <div className="product-details-page container">
             {/* Breadcrumb */}
@@ -114,10 +121,19 @@ const ProductDetails = () => {
 
                     <div className="pd-price-row">
                         <span className="pd-price">KSh {product.price.toLocaleString()}</span>
-                        {product.originalPrice && (
-                            <span className="pd-original-price">KSh {product.originalPrice.toLocaleString()}</span>
+                        {hasDiscount && (
+                            <>
+                                <span className="pd-original-price">
+                                    KSh {product.originalPrice.toLocaleString()}
+                                </span>
+                                {discountPercent !== null && (
+                                    <span className="pd-saving-pill">
+                                        Save {discountPercent}%
+                                    </span>
+                                )}
+                            </>
                         )}
-                        {product.onSale && (
+                        {product.onSale && !hasDiscount && (
                             <span className="pd-sale-badge">SALE</span>
                         )}
                     </div>
@@ -137,8 +153,13 @@ const ProductDetails = () => {
                     <div className="pd-availability">
                         <span className="pd-avail-label">Availability: </span>
                         <span className={product.stock > 0 ? 'pd-in-stock' : 'pd-out-stock'}>
-                            {product.stock > 0 ? `${product.stock} in Stock` : 'Out of Stock'}
+                            {product.stock > 0 ? `${product.stock} in stock` : 'Out of stock'}
                         </span>
+                        {product.stock > 0 && product.stock <= 5 && (
+                            <p className="pd-low-stock">
+                                Only {product.stock} left – almost gone!
+                            </p>
+                        )}
                     </div>
 
                     {/* Actions Row */}
@@ -153,7 +174,18 @@ const ProductDetails = () => {
                             onClick={handleAddToCart}
                             disabled={product.stock <= 0}
                         >
-                            {addedToCart ? '✓ ADDED!' : 'ADD TO CART'}
+                            {product.stock <= 0 ? (
+                                <span>Out of stock</span>
+                            ) : addedToCart ? (
+                                <>
+                                    <span>✓ Added to cart</span>
+                                </>
+                            ) : (
+                                <>
+                                    <i className="fas fa-shopping-cart" style={{ fontSize: 15 }}></i>
+                                    <span>Add to cart</span>
+                                </>
+                            )}
                         </button>
                         <button
                             className="pd-wishlist"
@@ -163,6 +195,21 @@ const ProductDetails = () => {
                             <i className={isFavourite(product._id) ? 'fas fa-heart' : 'far fa-heart'}></i>
                         </button>
                     </div>
+
+                    <ul className="pd-trust-list">
+                        <li>
+                            <i className="fas fa-shield-alt"></i>
+                            <span>12‑month limited warranty on this product</span>
+                        </li>
+                        <li>
+                            <i className="fas fa-truck"></i>
+                            <span>Fast delivery across Nairobi & major towns</span>
+                        </li>
+                        <li>
+                            <i className="fas fa-undo"></i>
+                            <span>7‑day return policy for eligible items</span>
+                        </li>
+                    </ul>
 
                     {/* Specifications */}
                     <div className="pd-specs">

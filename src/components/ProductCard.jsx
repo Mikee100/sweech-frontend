@@ -27,6 +27,8 @@ const ProductCard = ({ product, highlightQuery }) => {
     const { user } = useAuth();
     const navigate = useNavigate();
 
+    const primaryMeta = product.subCategory || (product.keyFeatures && product.keyFeatures[0]);
+
     const handleAddToCart = (e) => {
         e.preventDefault();
         console.log('ProductCard: handleAddToCart clicked', product.name);
@@ -78,6 +80,11 @@ const ProductCard = ({ product, highlightQuery }) => {
                     <p className="product-category">
                         {highlightText(product.category || 'Electronics', highlightQuery)}
                     </p>
+                    {primaryMeta && (
+                        <p className="product-meta">
+                            {highlightText(primaryMeta, highlightQuery)}
+                        </p>
+                    )}
                     <h3 className="product-title">
                         {highlightText(product.name, highlightQuery)}
                     </h3>
@@ -92,7 +99,14 @@ const ProductCard = ({ product, highlightQuery }) => {
                         onClick={handleAddToCart}
                         disabled={product.stock <= 0}
                     >
-                        {product.stock > 0 ? 'ADD TO CART' : 'OUT OF STOCK'}
+                        {product.stock > 0 ? (
+                            <>
+                                <i className="fas fa-shopping-cart" style={{ fontSize: 14 }}></i>
+                                <span>Add to cart</span>
+                            </>
+                        ) : (
+                            <span>Out of stock</span>
+                        )}
                     </button>
                 </div>
             </div>

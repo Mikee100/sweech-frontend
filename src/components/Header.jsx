@@ -27,18 +27,9 @@ const Header = ({ isCartOpen, setIsCartOpen }) => {
     const location = useLocation();
     const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
     const [isModalOpen, setIsModalOpen] = useState(false);
-    const [isSticky, setIsSticky] = useState(false);
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const [searchKeyword, setSearchKeyword] = useState('');
     const [drawerSearch, setDrawerSearch] = useState('');
-
-    useEffect(() => {
-        const handleScroll = () => {
-            setIsSticky(window.scrollY > 50);
-        };
-        window.addEventListener('scroll', handleScroll);
-        return () => window.removeEventListener('scroll', handleScroll);
-    }, []);
 
     useEffect(() => {
         if (isModalOpen || isMobileMenuOpen || isCartOpen) {
@@ -129,7 +120,7 @@ const Header = ({ isCartOpen, setIsCartOpen }) => {
 
     return (
         <>
-            <header className={`modern-header ${isSticky ? 'is-sticky' : ''}`}>
+            <header className="modern-header">
                 <div className="top-banner">
                     <div className="container">
                         <p>🚀 Free Delivery on orders over KSh 20,000 | Support: +254 700 000 000</p>

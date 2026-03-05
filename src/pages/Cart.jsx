@@ -106,18 +106,10 @@ const Cart = () => {
     }
 
     return (
-        <div className="cart-page container" style={{ padding: '60px 0' }}>
+        <div className="cart-page container" style={{ padding: '30px 0 60px' }}>
             <h1 style={{ fontSize: '32px', fontWeight: 'bold', marginBottom: '30px' }}>Cart</h1>
 
-            <div
-                className="cart-layout"
-                style={{
-                    display: 'grid',
-                    gridTemplateColumns: 'minmax(0, 2fr) minmax(0, 1.2fr)',
-                    gap: '30px',
-                    alignItems: 'flex-start',
-                }}
-            >
+            <div className="cart-layout">
                 {/* Left: Cart items + coupon + recommendations */}
                 <div className="cart-main-column">
                     {/* Cart items table */}
@@ -413,13 +405,7 @@ const Cart = () => {
                 </div>
 
                 {/* Right: Cart totals + shipping table */}
-                <aside
-                    className="cart-summary-column"
-                    style={{
-                        position: 'sticky',
-                        top: '120px',
-                    }}
-                >
+                <aside className="cart-summary-column">
                     <div
                         style={{
                             backgroundColor: 'white',

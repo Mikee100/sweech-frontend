@@ -18,6 +18,9 @@ import MyOrders from './pages/MyOrders'
 import Favourites from './pages/Favourites'
 import Contact from './pages/Contact'
 import Delivery from './pages/Delivery'
+import Returns from './pages/Returns'
+import Faq from './pages/Faq'
+import CustomerSupport from './pages/CustomerSupport'
 import AdminRoute from './components/AdminRoute'
 import AdminLayout from './components/AdminLayout'
 import ProductList from './pages/Admin/ProductList'
@@ -58,6 +61,9 @@ function App() {
           <Route path="/search" element={<Search />} />
           <Route path="/contact" element={<Contact />} />
           <Route path="/delivery" element={<Delivery />} />
+          <Route path="/returns" element={<Returns />} />
+          <Route path="/faq" element={<Faq />} />
+          <Route path="/customer-support" element={<CustomerSupport />} />
 
           <Route path="/admin" element={<AdminRoute />}>
             <Route element={<AdminLayout />}>

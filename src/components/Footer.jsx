@@ -26,6 +26,7 @@ const Footer = () => {
                     <div className="footer-col">
                         <h3>Customer Care</h3>
                         <ul>
+                            <li><a href="/customer-support">Customer Support</a></li>
                             <li><a href="/contact">Contact Us</a></li>
                             <li><a href="/delivery">Delivery Information</a></li>
                             <li><a href="/returns">Returns & Refunds</a></li>

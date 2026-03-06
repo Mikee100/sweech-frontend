@@ -23,17 +23,20 @@ const Cart = () => {
         setCouponSuccess('');
 
         if (!code) {
-            setCouponError('Please enter a coupon code.');
+            const message = 'Please enter a coupon code.';
+            setCouponError(message);
             return;
         }
 
         if (code === 'SWECH10') {
             const newDiscount = cartTotal * 0.1;
             setDiscount(newDiscount);
-            setCouponSuccess('Coupon applied! You received 10% off your cart subtotal.');
+            const message = 'Coupon applied! You received 10% off your cart subtotal.';
+            setCouponSuccess(message);
         } else {
+            const message = 'Invalid coupon code. Please check and try again.';
             setDiscount(0);
-            setCouponError('Invalid coupon code. Please check and try again.');
+            setCouponError(message);
         }
     };
 

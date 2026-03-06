@@ -29,6 +29,13 @@ const ProductCard = ({ product, highlightQuery }) => {
 
     const primaryMeta = product.subCategory || (product.keyFeatures && product.keyFeatures[0]);
 
+    const fallbackImage = '/placeholder-product.svg';
+
+    const imageSrc =
+        (Array.isArray(product.images) && product.images.length > 0 && product.images[0]) ||
+        product.image ||
+        fallbackImage;
+
     const handleAddToCart = (e) => {
         e.preventDefault();
         console.log('ProductCard: handleAddToCart clicked', product.name);
@@ -56,11 +63,12 @@ const ProductCard = ({ product, highlightQuery }) => {
             <Link to={`/product/${product.slug}`} style={{ textDecoration: 'none', color: 'inherit' }}>
                 <div className="product-image-wrapper">
                     <img
-                        src={
-                            product.images[0] ||
-                            'https://images.unsplash.com/photo-1517336714731-489689fd1ca8?q=80&w=800&auto=format&fit=crop'
-                        }
+                        src={imageSrc}
                         alt={product.name}
+                        onError={(e) => {
+                            e.currentTarget.onerror = null;
+                            e.currentTarget.src = fallbackImage;
+                        }}
                     />
                     {product.onSale && <span className="badge sale">Sale!</span>}
                     {product.stock <= 0 && <span className="badge out-of-stock">Out of Stock</span>}

@@ -28,6 +28,40 @@ const curatedCollections = [
     },
 ];
 
+const homeBrands = [
+    'Anker',
+    'Baseus',
+    'Belkin',
+    'DJI',
+    'EcoFlow',
+    'JBL',
+    'Logitech',
+    'Samsung',
+    'Sandisk',
+    'Soundcore',
+];
+
+const homeTestimonials = [
+    {
+        name: 'Sarah, Nairobi',
+        title: 'Upgraded my whole desk',
+        quote:
+            'Loved how easy it was to find matching chargers, hubs, and a laptop stand that actually looks premium.',
+    },
+    {
+        name: 'Brian, Mombasa',
+        title: 'Same‑day delivery came through',
+        quote:
+            'Ordered a power bank and headphones in the morning and had them in hand before heading out in the evening.',
+    },
+    {
+        name: 'Lynn, Kisumu',
+        title: 'Clear communication & support',
+        quote:
+            'Customer support helped me pick the right capacity for a power station instead of just upselling.',
+    },
+];
+
 const Home = () => {
     const [products, setProducts] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -471,6 +505,64 @@ const Home = () => {
                                 View collection <ChevronRight size={14} />
                             </span>
                         </Link>
+                    ))}
+                </div>
+            </section>
+
+            {/* Layer: Brands we stock */}
+            <section className="home-brands">
+                <div className="container home-brands-inner">
+                    <div className="home-brands-header">
+                        <div>
+                            <p className="home-brands-eyebrow">BRANDS WE STOCK</p>
+                            <h2>Shop trusted global names</h2>
+                            <p>
+                                Jump straight into products from the brands you already know and love.
+                            </p>
+                        </div>
+                        <Link to="/search" className="home-brands-link">
+                            View all brands <ChevronRight size={16} />
+                        </Link>
+                    </div>
+                    <div className="home-brands-row">
+                        {homeBrands.map((brand) => (
+                            <Link
+                                key={brand}
+                                to={`/search?brand=${encodeURIComponent(brand)}`}
+                                className="home-brand-pill"
+                            >
+                                <span className="home-brand-name">{brand}</span>
+                            </Link>
+                        ))}
+                    </div>
+                </div>
+            </section>
+
+            {/* Layer: Customer stories */}
+            <section className="home-layer-section container home-testimonials">
+                <div className="section-header">
+                    <div className="title-area">
+                        <span className="subtitle">CUSTOMER STORIES</span>
+                        <h2 className="main-title">Why shoppers stay with CaseProz</h2>
+                        <p className="section-kicker">
+                            Real experiences from people who built their everyday setups with us.
+                        </p>
+                    </div>
+                </div>
+                <div className="testimonial-grid">
+                    {homeTestimonials.map((item) => (
+                        <article key={item.name} className="testimonial-card">
+                            <div className="testimonial-rating">
+                                <i className="fas fa-star" />
+                                <i className="fas fa-star" />
+                                <i className="fas fa-star" />
+                                <i className="fas fa-star" />
+                                <i className="fas fa-star" />
+                            </div>
+                            <h3>{item.title}</h3>
+                            <p className="testimonial-quote">“{item.quote}”</p>
+                            <p className="testimonial-name">— {item.name}</p>
+                        </article>
                     ))}
                 </div>
             </section>

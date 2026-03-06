@@ -80,12 +80,27 @@ const CartDrawer = ({ isOpen, onClose }) => {
                                     <h4 style={{ fontSize: '14px', margin: '0 0 5px 0', fontWeight: 'bold' }}>{item.name}</h4>
                                     <p style={{ fontSize: '14px', color: '#E41E26', fontWeight: 'bold', margin: '0 0 10px 0' }}>KSh {item.price.toLocaleString()}</p>
                                     <div className="quantity-controls" style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                                        <button onClick={() => updateQuantity(item._id, item.quantity - 1)} style={{ width: '24px', height: '24px', borderRadius: '50%', border: '1px solid #ddd', background: 'white', cursor: 'pointer' }}>-</button>
+                                        <button
+                                            onClick={() => updateQuantity(item._id, item.quantity - 1)}
+                                            style={{ width: '24px', height: '24px', borderRadius: '50%', border: '1px solid #ddd', background: 'white', cursor: 'pointer' }}
+                                        >
+                                            -
+                                        </button>
                                         <span style={{ fontSize: '14px', fontWeight: 'bold' }}>{item.quantity}</span>
-                                        <button onClick={() => updateQuantity(item._id, item.quantity + 1)} style={{ width: '24px', height: '24px', borderRadius: '50%', border: '1px solid #ddd', background: 'white', cursor: 'pointer' }}>+</button>
+                                        <button
+                                            onClick={() => updateQuantity(item._id, item.quantity + 1)}
+                                            style={{ width: '24px', height: '24px', borderRadius: '50%', border: '1px solid #ddd', background: 'white', cursor: 'pointer' }}
+                                        >
+                                            +
+                                        </button>
                                     </div>
                                 </div>
-                                <button onClick={() => removeFromCart(item._id)} style={{ background: 'none', border: 'none', color: '#ccc', cursor: 'pointer', alignSelf: 'start' }}>
+                                <button
+                                    onClick={() => {
+                                        removeFromCart(item._id);
+                                    }}
+                                    style={{ background: 'none', border: 'none', color: '#ccc', cursor: 'pointer', alignSelf: 'start' }}
+                                >
                                     <i className="fas fa-trash"></i>
                                 </button>
                             </div>
@@ -115,16 +130,19 @@ const CartDrawer = ({ isOpen, onClose }) => {
                                 CHECKOUT NOW
                             </button>
                         </Link>
-                        <button onClick={clearCart} style={{
-                            width: '100%',
-                            padding: '10px',
-                            backgroundColor: 'white',
-                            color: '#999',
-                            border: '1px solid #ddd',
-                            borderRadius: '8px',
-                            cursor: 'pointer',
-                            fontSize: '14px'
-                        }}>
+                        <button
+                            onClick={clearCart}
+                            style={{
+                                width: '100%',
+                                padding: '10px',
+                                backgroundColor: 'white',
+                                color: '#999',
+                                border: '1px solid #ddd',
+                                borderRadius: '8px',
+                                cursor: 'pointer',
+                                fontSize: '14px'
+                            }}
+                        >
                             Clear Cart
                         </button>
                     </div>

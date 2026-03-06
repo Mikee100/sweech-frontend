@@ -47,7 +47,8 @@ const Checkout = () => {
 
         // Frontend validation to ensure required shipping fields are filled
         if (!address.trim() || !city.trim() || !postalCode.trim() || !country.trim()) {
-            setError('Please fill in your full shipping address before placing the order.');
+            const message = 'Please fill in your full shipping address before placing the order.';
+            setError(message);
             setLoading(false);
             return;
         }
@@ -82,16 +83,19 @@ const Checkout = () => {
 
             if (response.ok) {
                 clearCart();
-                setSuccess('Order placed successfully! Redirecting to your order...');
+                const message = 'Order placed successfully! Redirecting to your order...';
+                setSuccess(message);
                 // Give the user a moment to see the success message before redirecting
                 setTimeout(() => {
                     navigate(`/order/${data._id}`);
                 }, 1200);
             } else {
-                setError(data.message || 'Failed to place order. Please review your details and try again.');
+                const message = data.message || 'Failed to place order. Please review your details and try again.';
+                setError(message);
             }
         } catch (err) {
-            setError('Something went wrong while placing your order. Please check your connection and try again.');
+            const message = 'Something went wrong while placing your order. Please check your connection and try again.';
+            setError(message);
         } finally {
             setLoading(false);
         }

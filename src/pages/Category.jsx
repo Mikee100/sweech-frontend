@@ -1,13 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
-
-const slugify = (value = '') =>
-    value
-        .toString()
-        .toLowerCase()
-        .trim()
-        .replace(/[^a-z0-9]+/g, '-')
-        .replace(/^-+|-+$/g, '');
+import { slugify, matchesCategorySlug } from '../utils/categoryMap';
 
 const Category = () => {
     const { categoryName } = useParams();
@@ -24,61 +17,7 @@ const Category = () => {
 
                 const targetSlug = slugify(categoryName || '');
 
-                const filtered = data.filter((p) => {
-                    const categorySlug = slugify(p.category);
-                    const subCategorySlug = slugify(p.subCategory);
-
-                    // Direct matches on category or subcategory
-                    if (categorySlug === targetSlug || subCategorySlug === targetSlug) {
-                        return true;
-                    }
-
-                    // Friendly aliases for umbrella URLs from the category modal
-                    if (targetSlug === 'smart-watches') {
-                        // Group all wearable watches under "Smart watches"
-                        return (
-                            categorySlug === 'wearables' ||
-                            subCategorySlug.includes('watch')
-                        );
-                    }
-
-                    if (targetSlug === 'cables') {
-                        // Map "Cables" to "Cables & Adapters"
-                        return (
-                            categorySlug === 'accessories' &&
-                            subCategorySlug.includes('cables-adapters')
-                        );
-                    }
-
-                    if (targetSlug === 'cases') {
-                        // Map "Cases" to "Cases & Covers"
-                        return (
-                            categorySlug === 'accessories' &&
-                            subCategorySlug.includes('cases-covers')
-                        );
-                    }
-
-                    if (targetSlug === 'chargers') {
-                        // Treat "Chargers" as power-related accessories
-                        return (
-                            categorySlug === 'accessories' &&
-                            (subCategorySlug.includes('power') ||
-                                subCategorySlug.includes('power-banks'))
-                        );
-                    }
-
-                    if (targetSlug === 'screen-protectors') {
-                        // Map "Screen protectors" to protective accessories like cases & covers / phone accessories
-                        return (
-                            (categorySlug === 'accessories' &&
-                                subCategorySlug.includes('cases-covers')) ||
-                            (categorySlug === 'phones-tablets' &&
-                                subCategorySlug.includes('phone-accessories'))
-                        );
-                    }
-
-                    return false;
-                });
+                const filtered = data.filter((p) => matchesCategorySlug(p, targetSlug));
 
                 setProducts(filtered);
                 setLoading(false);

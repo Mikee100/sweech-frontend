@@ -1,10 +1,24 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
 const AdminLayout = () => {
     const { logout } = useAuth();
     const navigate = useNavigate();
+
+    // Remove the storefront header gap for admin routes
+    useEffect(() => {
+        const prevPaddingTop = document.body.style.paddingTop;
+        const prevBg = document.body.style.backgroundColor;
+
+        document.body.style.paddingTop = '0px';
+        document.body.style.backgroundColor = '#f4f7f6';
+
+        return () => {
+            document.body.style.paddingTop = prevPaddingTop;
+            document.body.style.backgroundColor = prevBg;
+        };
+    }, []);
 
     const handleLogout = () => {
         logout();

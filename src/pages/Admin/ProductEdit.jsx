@@ -1,7 +1,15 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate, useParams, Link } from 'react-router-dom';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { CATEGORIES } from '../../constants/categories';
+
+const toList = (value) => {
+    if (!value) return [];
+    return String(value)
+        .split(',')
+        .map((s) => s.trim())
+        .filter(Boolean);
+};
 
 const ProductEdit = () => {
     const { id } = useParams();
@@ -16,6 +24,14 @@ const ProductEdit = () => {
     const [images, setImages] = useState([]);
     const [category, setCategory] = useState('');
     const [subCategory, setSubCategory] = useState('');
+    const [categoriesText, setCategoriesText] = useState('');
+    const [sku, setSku] = useState('');
+    const [brand, setBrand] = useState('');
+    const [variantGroup, setVariantGroup] = useState('');
+    const [variantLabel, setVariantLabel] = useState('');
+    const [featureHeadline, setFeatureHeadline] = useState('');
+    const [featureSubtext, setFeatureSubtext] = useState('');
+    const [notes, setNotes] = useState([]);
     const [stock, setStock] = useState(0);
     const [description, setDescription] = useState('');
     const [onSale, setOnSale] = useState(false);
@@ -26,90 +42,140 @@ const ProductEdit = () => {
     const [error, setError] = useState('');
     const [uploading, setUploading] = useState(false);
 
-    useEffect(() => {
-        if (isEditMode) {
-            const fetchProduct = async () => {
-                setLoading(true);
-                try {
-                    const response = await fetch(`${import.meta.env.VITE_API_URL}/api/products/id/${id}`);
-                    if (!response.ok) throw new Error('Product not found');
-                    const product = await response.json();
+    const descriptionEditorRef = useRef(null);
 
-                    setName(product.name);
-                    setPrice(product.price);
-                    setOriginalPrice(product.originalPrice || 0);
-                    setImage(product.images[0] || '');
-                    setImages(product.images || []);
-                    setCategory(product.category);
-                    setSubCategory(product.subCategory || '');
-                    setStock(product.stock);
-                    setDescription(product.description);
-                    setOnSale(product.onSale || false);
-                    setIsFeatured(product.isFeatured || false);
-                    setKeyFeatures(product.keyFeatures || []);
-                    setSpecs(product.specs || []);
-                } catch (err) {
-                    setError('Failed to fetch product');
-                } finally {
-                    setLoading(false);
-                }
-            };
-            fetchProduct();
-        }
+    const subCategoryOptions = useMemo(() => {
+        if (!category) return [];
+        return CATEGORIES?.[category] || [];
+    }, [category]);
+
+    useEffect(() => {
+        if (!isEditMode) return;
+
+        const fetchProduct = async () => {
+            setLoading(true);
+            setError('');
+            try {
+                const response = await fetch(`${import.meta.env.VITE_API_URL}/api/products/id/${id}`);
+                if (!response.ok) throw new Error('Product not found');
+                const product = await response.json();
+
+                setName(product.name || '');
+                setPrice(Number(product.price || 0));
+                setOriginalPrice(Number(product.originalPrice || 0));
+                setImage(product.images?.[0] || '');
+                setImages(product.images || []);
+                setCategory(product.category || '');
+                setSubCategory(product.subCategory || '');
+                setCategoriesText((product.categories || []).join(', '));
+                setSku(product.sku || '');
+                setBrand(product.brand || '');
+                setVariantGroup(product.variantGroup || '');
+                setVariantLabel(product.variantLabel || '');
+                setFeatureHeadline(product.featureHeadline || '');
+                setFeatureSubtext(product.featureSubtext || '');
+                setNotes(product.notes || []);
+                setStock(Number(product.stock || 0));
+                setDescription(product.description || '');
+                setOnSale(Boolean(product.onSale));
+                setIsFeatured(Boolean(product.isFeatured));
+                setKeyFeatures(product.keyFeatures || []);
+                setSpecs(product.specs || []);
+            } catch (err) {
+                setError('Failed to fetch product');
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchProduct();
     }, [id, isEditMode]);
 
     const uploadFileHandler = async (e) => {
-        const file = e.target.files[0];
-        const formData = new FormData();
-        formData.append('image', file);
+        const files = Array.from(e.target.files || []);
+        if (!files.length) return;
+
         setUploading(true);
 
         try {
-            const response = await fetch(`${import.meta.env.VITE_API_URL}/api/upload`, {
-                method: 'POST',
-                body: formData,
-            });
-            const data = await response.text();
-            setImage(data);
-            setImages(prev => [...prev, data]);
+            const uploadedUrls = [];
+
+            for (const file of files) {
+                const formData = new FormData();
+                formData.append('image', file);
+
+                const response = await fetch(`${import.meta.env.VITE_API_URL}/api/upload`, {
+                    method: 'POST',
+                    body: formData,
+                });
+
+                if (!response.ok) continue;
+                const url = await response.text();
+                uploadedUrls.push(url);
+            }
+
+            if (uploadedUrls.length) {
+                // Use the first uploaded image as the main URL field
+                setImage((prev) => prev || uploadedUrls[0]);
+                setImages((prev) => [...prev, ...uploadedUrls]);
+            }
+        } catch (err) {
+            console.error(err);
+        } finally {
             setUploading(false);
-        } catch (error) {
-            console.error(error);
-            setUploading(false);
+            // Allow selecting the same file(s) again by resetting the input
+            e.target.value = '';
         }
     };
 
-    const addKeyFeatureHandler = () => {
-        setKeyFeatures([...keyFeatures, '']);
-    };
-
-    const removeKeyFeatureHandler = (index) => {
-        setKeyFeatures(keyFeatures.filter((_, i) => i !== index));
-    };
-
+    const addKeyFeatureHandler = () => setKeyFeatures([...keyFeatures, '']);
+    const removeKeyFeatureHandler = (index) => setKeyFeatures(keyFeatures.filter((_, i) => i !== index));
     const keyFeatureChangeHandler = (index, value) => {
-        const newFeatures = [...keyFeatures];
-        newFeatures[index] = value;
-        setKeyFeatures(newFeatures);
+        const next = [...keyFeatures];
+        next[index] = value;
+        setKeyFeatures(next);
     };
 
-    const addSpecHandler = () => {
-        setSpecs([...specs, { key: '', value: '' }]);
-    };
-
-    const removeSpecHandler = (index) => {
-        setSpecs(specs.filter((_, i) => i !== index));
-    };
-
+    const addSpecHandler = () => setSpecs([...specs, { key: '', value: '' }]);
+    const removeSpecHandler = (index) => setSpecs(specs.filter((_, i) => i !== index));
     const specChangeHandler = (index, field, value) => {
-        const newSpecs = [...specs];
-        newSpecs[index][field] = value;
-        setSpecs(newSpecs);
+        const next = [...specs];
+        next[index][field] = value;
+        setSpecs(next);
+    };
+
+    const addNoteHandler = () => setNotes([...notes, '']);
+    const removeNoteHandler = (index) => setNotes(notes.filter((_, i) => i !== index));
+    const noteChangeHandler = (index, value) => {
+        const next = [...notes];
+        next[index] = value;
+        setNotes(next);
+    };
+
+    const addImageUrlHandler = () => {
+        const url = image.trim();
+        if (!url) return;
+        setImages((prev) => [...prev, url]);
+        // If no main image is set yet, use this as the main one
+        setImage('');
+    };
+
+    const execDescriptionCommand = (command, value = null) => {
+        if (!descriptionEditorRef.current) return;
+        descriptionEditorRef.current.focus();
+        document.execCommand(command, false, value);
+        setDescription(descriptionEditorRef.current.innerHTML);
+    };
+
+    const handleDescriptionInput = () => {
+        if (!descriptionEditorRef.current) return;
+        setDescription(descriptionEditorRef.current.innerHTML);
     };
 
     const submitHandler = async (e) => {
         e.preventDefault();
         setLoading(true);
+        setError('');
 
         const slug = name.toLowerCase().replace(/ /g, '-').replace(/[^\w-]+/g, '');
 
@@ -118,9 +184,17 @@ const ProductEdit = () => {
             slug,
             price,
             originalPrice,
-            images: images.length > 0 ? images : [image],
+            images: images.length > 0 ? images : [image].filter(Boolean),
             category,
             subCategory,
+            categories: toList(categoriesText),
+            sku,
+            brand,
+            variantGroup,
+            variantLabel,
+            featureHeadline,
+            featureSubtext,
+            notes,
             stock,
             description,
             onSale,
@@ -159,7 +233,7 @@ const ProductEdit = () => {
 
     const handleCategoryChange = (e) => {
         setCategory(e.target.value);
-        setSubCategory(''); // Reset subcategory when category changes
+        setSubCategory('');
     };
 
     const styles = {
@@ -210,7 +284,9 @@ const ProductEdit = () => {
                     <h1 style={{ fontSize: '28px', fontWeight: '800', color: '#1a1a1a', margin: 0 }}>
                         {isEditMode ? 'Edit Product' : 'Create New Product'}
                     </h1>
-                    <p style={{ color: '#666', marginTop: '5px' }}>Fill in the details below to {isEditMode ? 'update' : 'add'} your product.</p>
+                    <p style={{ color: '#666', marginTop: '5px' }}>
+                        Add the details that power the new product page (SKU, Brand, Categories, Hero banner, Notes).
+                    </p>
                 </div>
                 <Link to="/admin/productlist" style={{
                     padding: '10px 20px',
@@ -225,7 +301,11 @@ const ProductEdit = () => {
                 </Link>
             </div>
 
-            {error && <div style={{ backgroundColor: '#fee2e2', color: '#dc2626', padding: '15px', borderRadius: '8px', marginBottom: '20px', fontSize: '14px' }}>{error}</div>}
+            {error && (
+                <div style={{ backgroundColor: '#fee2e2', color: '#dc2626', padding: '15px', borderRadius: '8px', marginBottom: '20px', fontSize: '14px' }}>
+                    {error}
+                </div>
+            )}
 
             <form onSubmit={submitHandler} style={styles.card}>
                 {/* Basic Info Section */}
@@ -233,7 +313,7 @@ const ProductEdit = () => {
                     <h2 style={styles.sectionTitle}><i className="fas fa-info-circle" style={{ color: '#E41E26' }}></i> Basic Information</h2>
                     <div style={{ marginBottom: '24px' }}>
                         <label style={styles.label}>Product Name</label>
-                        <input type="text" value={name} onChange={(e) => setName(e.target.value)} required placeholder="e.g. EcoFlow RIVER 2 Max" style={styles.input} />
+                        <input type="text" value={name} onChange={(e) => setName(e.target.value)} required placeholder="e.g. Anker Soundcore Liberty 5..." style={styles.input} />
                     </div>
 
                     <div style={styles.row}>
@@ -249,7 +329,7 @@ const ProductEdit = () => {
 
                     <div style={styles.row}>
                         <div>
-                            <label style={styles.label}>Category</label>
+                            <label style={styles.label}>Category (primary)</label>
                             <select value={category} onChange={handleCategoryChange} required style={styles.input}>
                                 <option value="">Select Category</option>
                                 {Object.keys(CATEGORIES).map(cat => (
@@ -259,12 +339,63 @@ const ProductEdit = () => {
                         </div>
                         <div>
                             <label style={styles.label}>Subcategory</label>
-                            <select value={subCategory} onChange={(e) => setSubCategory(e.target.value)} required style={styles.input} disabled={!category}>
-                                <option value="">Select Subcategory</option>
-                                {category && CATEGORIES[category].map(sub => (
+                            <select value={subCategory} onChange={(e) => setSubCategory(e.target.value)} style={styles.input} disabled={!category}>
+                                <option value="">{category ? 'Select Subcategory' : 'Select category first'}</option>
+                                {subCategoryOptions.map(sub => (
                                     <option key={sub} value={sub}>{sub}</option>
                                 ))}
                             </select>
+                        </div>
+                    </div>
+
+                    <div style={styles.row}>
+                        <div>
+                            <label style={styles.label}>SKU</label>
+                            <input type="text" value={sku} onChange={(e) => setSku(e.target.value)} placeholder="e.g. A3957H31" style={styles.input} />
+                        </div>
+                        <div>
+                            <label style={styles.label}>Brand</label>
+                            <input type="text" value={brand} onChange={(e) => setBrand(e.target.value)} placeholder="e.g. Soundcore by Anker" style={styles.input} />
+                        </div>
+                    </div>
+
+                    <div style={styles.row}>
+                        <div>
+                            <label style={styles.label}>Variant Group ID (for color/size family)</label>
+                            <input
+                                type="text"
+                                value={variantGroup}
+                                onChange={(e) => setVariantGroup(e.target.value)}
+                                placeholder="e.g. liberty-5"
+                                style={styles.input}
+                            />
+                            <div style={{ marginTop: '6px', fontSize: '12px', color: '#6b7280' }}>
+                                Use the same group ID for all colorways (e.g. Liberty 5 White & Black).
+                            </div>
+                        </div>
+                        <div>
+                            <label style={styles.label}>Variant Label</label>
+                            <input
+                                type="text"
+                                value={variantLabel}
+                                onChange={(e) => setVariantLabel(e.target.value)}
+                                placeholder="e.g. White"
+                                style={styles.input}
+                            />
+                        </div>
+                    </div>
+
+                    <div style={{ marginBottom: '0' }}>
+                        <label style={styles.label}>Extra Categories / Tags (comma-separated)</label>
+                        <input
+                            type="text"
+                            value={categoriesText}
+                            onChange={(e) => setCategoriesText(e.target.value)}
+                            placeholder="e.g. Earphones, Valentine's Day Gifts"
+                            style={styles.input}
+                        />
+                        <div style={{ marginTop: '8px', fontSize: '12px', color: '#6b7280' }}>
+                            These show in the product footer as “Categories: …” (in addition to Category/Subcategory).
                         </div>
                     </div>
                 </div>
@@ -288,6 +419,42 @@ const ProductEdit = () => {
                     </div>
                 </div>
 
+                {/* Hero text */}
+                <div style={{ marginBottom: '40px' }}>
+                    <h2 style={styles.sectionTitle}><i className="fas fa-bullhorn" style={{ color: '#E41E26' }}></i> Hero Banner Text</h2>
+                    <div style={styles.row}>
+                        <div>
+                            <label style={styles.label}>Hero Headline</label>
+                            <input type="text" value={featureHeadline} onChange={(e) => setFeatureHeadline(e.target.value)} placeholder="e.g. 67% Faster Recharging" style={styles.input} />
+                        </div>
+                        <div>
+                            <label style={styles.label}>Hero Subtext</label>
+                            <input type="text" value={featureSubtext} onChange={(e) => setFeatureSubtext(e.target.value)} placeholder="e.g. 30W Max Input" style={styles.input} />
+                        </div>
+                    </div>
+                </div>
+
+                {/* Notes */}
+                <div style={{ marginBottom: '40px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+                        <h2 style={{ ...styles.sectionTitle, margin: 0 }}><i className="fas fa-sticky-note" style={{ color: '#E41E26' }}></i> Notes (below main image)</h2>
+                        <button type="button" onClick={addNoteHandler} style={{ padding: '8px 16px', backgroundColor: '#f0f0f0', border: '1px solid #ddd', borderRadius: '8px', fontSize: '13px', fontWeight: '600', cursor: 'pointer' }}>+ Add Note</button>
+                    </div>
+                    <div style={{ display: 'grid', gap: '12px' }}>
+                        {notes.map((note, index) => (
+                            <div key={index} style={{ display: 'flex', gap: '12px' }}>
+                                <input type="text" placeholder="Note text..." value={note} onChange={(e) => noteChangeHandler(index, e.target.value)} style={styles.input} />
+                                <button type="button" onClick={() => removeNoteHandler(index)} style={{ padding: '12px', color: '#E41E26', cursor: 'pointer', border: 'none', background: 'none' }}><i className="fas fa-trash-alt"></i></button>
+                            </div>
+                        ))}
+                        {notes.length === 0 && (
+                            <div style={{ fontSize: '13px', color: '#6b7280' }}>
+                                Optional. Use this for disclaimers or comparison notes like the Sweech example.
+                            </div>
+                        )}
+                    </div>
+                </div>
+
                 {/* Media Section */}
                 <div style={{ marginBottom: '40px' }}>
                     <h2 style={styles.sectionTitle}><i className="fas fa-images" style={{ color: '#E41E26' }}></i> Product Media</h2>
@@ -295,6 +462,22 @@ const ProductEdit = () => {
                         <label style={styles.label}>Upload or Link Images</label>
                         <div style={{ display: 'flex', gap: '12px' }}>
                             <input type="text" value={image} onChange={(e) => setImage(e.target.value)} placeholder="Paste Image URL" style={{ ...styles.input, flex: 1 }} />
+                            <button
+                                type="button"
+                                onClick={addImageUrlHandler}
+                                style={{
+                                    padding: '0 18px',
+                                    backgroundColor: '#f3f4f6',
+                                    border: '1px solid #e5e7eb',
+                                    borderRadius: '10px',
+                                    fontSize: '13px',
+                                    fontWeight: '600',
+                                    cursor: 'pointer',
+                                    whiteSpace: 'nowrap'
+                                }}
+                            >
+                                ADD URL
+                            </button>
                             <label style={{
                                 padding: '0 25px',
                                 backgroundColor: '#1a1a1a',
@@ -308,7 +491,7 @@ const ProductEdit = () => {
                                 justifyContent: 'center'
                             }}>
                                 {uploading ? 'UPLOADING...' : 'UPLOAD'}
-                                <input type="file" onChange={uploadFileHandler} style={{ display: 'none' }} />
+                                <input type="file" multiple onChange={uploadFileHandler} style={{ display: 'none' }} />
                             </label>
                         </div>
                     </div>
@@ -344,7 +527,40 @@ const ProductEdit = () => {
                 {/* Description & Details */}
                 <div style={{ marginBottom: '40px' }}>
                     <h2 style={styles.sectionTitle}><i className="fas fa-align-left" style={{ color: '#E41E26' }}></i> Description</h2>
-                    <textarea rows="6" value={description} onChange={(e) => setDescription(e.target.value)} required placeholder="Describe your product in detail..." style={{ ...styles.input, resize: 'vertical' }}></textarea>
+                    <div style={{ marginBottom: '10px', display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                        <button type="button" onClick={() => execDescriptionCommand('bold')} style={{ padding: '6px 10px', fontSize: '12px', borderRadius: '6px', border: '1px solid #e5e7eb', background: '#f9fafb', cursor: 'pointer', fontWeight: '700' }}>B</button>
+                        <button type="button" onClick={() => execDescriptionCommand('italic')} style={{ padding: '6px 10px', fontSize: '12px', borderRadius: '6px', border: '1px solid #e5e7eb', background: '#f9fafb', cursor: 'pointer', fontStyle: 'italic' }}>I</button>
+                        <button type="button" onClick={() => execDescriptionCommand('insertUnorderedList')} style={{ padding: '6px 10px', fontSize: '12px', borderRadius: '6px', border: '1px solid #e5e7eb', background: '#f9fafb', cursor: 'pointer' }}>• List</button>
+                        <button type="button" onClick={() => execDescriptionCommand('insertOrderedList')} style={{ padding: '6px 10px', fontSize: '12px', borderRadius: '6px', border: '1px solid #e5e7eb', background: '#f9fafb', cursor: 'pointer' }}>1. List</button>
+                        <button type="button" onClick={() => execDescriptionCommand('formatBlock', 'H4')} style={{ padding: '6px 10px', fontSize: '12px', borderRadius: '6px', border: '1px solid #e5e7eb', background: '#f9fafb', cursor: 'pointer', fontWeight: '600' }}>H</button>
+                        <button type="button" onClick={() => execDescriptionCommand('formatBlock', 'BLOCKQUOTE')} style={{ padding: '6px 10px', fontSize: '12px', borderRadius: '6px', border: '1px solid #e5e7eb', background: '#f9fafb', cursor: 'pointer' }}>&ldquo; Quote</button>
+                        <button
+                            type="button"
+                            onClick={() => {
+                                const url = window.prompt('Image URL');
+                                if (url) {
+                                    execDescriptionCommand('insertImage', url);
+                                }
+                            }}
+                            style={{ padding: '6px 10px', fontSize: '12px', borderRadius: '6px', border: '1px solid #e5e7eb', background: '#f9fafb', cursor: 'pointer' }}
+                        >
+                            Img
+                        </button>
+                        <button type="button" onClick={() => execDescriptionCommand('removeFormat')} style={{ padding: '6px 10px', fontSize: '12px', borderRadius: '6px', border: '1px solid #fee2e2', background: '#fef2f2', cursor: 'pointer', color: '#b91c1c' }}>Clear</button>
+                    </div>
+                    <div
+                        ref={descriptionEditorRef}
+                        contentEditable
+                        onInput={handleDescriptionInput}
+                        dangerouslySetInnerHTML={{ __html: description }}
+                        style={{
+                            ...styles.input,
+                            minHeight: '160px',
+                            lineHeight: 1.5,
+                            overflowY: 'auto'
+                        }}
+                        placeholder="Describe your product, add sections like “From the Manufacturer”, lists, etc."
+                    />
                 </div>
 
                 {/* Key Features Section */}
@@ -356,7 +572,7 @@ const ProductEdit = () => {
                     <div style={{ display: 'grid', gap: '12px' }}>
                         {keyFeatures.map((feature, index) => (
                             <div key={index} style={{ display: 'flex', gap: '12px' }}>
-                                <input type="text" placeholder="Highlight point (e.g. 5000mAh Long Battery Life)" value={feature} onChange={(e) => keyFeatureChangeHandler(index, e.target.value)} style={styles.input} />
+                                <input type="text" placeholder="Highlight point (e.g. Real-Time Adaptive Noise Canceling)" value={feature} onChange={(e) => keyFeatureChangeHandler(index, e.target.value)} style={styles.input} />
                                 <button type="button" onClick={() => removeKeyFeatureHandler(index)} style={{ padding: '12px', color: '#E41E26', cursor: 'pointer', border: 'none', background: 'none' }}><i className="fas fa-trash-alt"></i></button>
                             </div>
                         ))}
@@ -372,8 +588,8 @@ const ProductEdit = () => {
                     <div style={{ display: 'grid', gap: '12px' }}>
                         {specs.map((spec, index) => (
                             <div key={index} style={{ display: 'flex', gap: '12px' }}>
-                                <input type="text" placeholder="Spec Key (e.g. Weight)" value={spec.key} onChange={(e) => specChangeHandler(index, 'key', e.target.value)} style={{ ...styles.input, flex: 1 }} />
-                                <input type="text" placeholder="Spec Value (e.g. 250g)" value={spec.value} onChange={(e) => specChangeHandler(index, 'value', e.target.value)} style={{ ...styles.input, flex: 1 }} />
+                                <input type="text" placeholder="Spec Key (e.g. Bluetooth Version)" value={spec.key} onChange={(e) => specChangeHandler(index, 'key', e.target.value)} style={{ ...styles.input, flex: 1 }} />
+                                <input type="text" placeholder="Spec Value (e.g. 5.4)" value={spec.value} onChange={(e) => specChangeHandler(index, 'value', e.target.value)} style={{ ...styles.input, flex: 1 }} />
                                 <button type="button" onClick={() => removeSpecHandler(index)} style={{ padding: '12px', color: '#E41E26', cursor: 'pointer', border: 'none', background: 'none' }}><i className="fas fa-trash-alt"></i></button>
                             </div>
                         ))}
@@ -405,3 +621,4 @@ const ProductEdit = () => {
 };
 
 export default ProductEdit;
+

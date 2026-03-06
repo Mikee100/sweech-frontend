@@ -6,17 +6,79 @@ import { useAuth } from '../context/AuthContext';
 import { useFavorites } from '../context/FavoritesContext';
 
 const BRANDS = [
-    'Apple',
-    'Samsung',
-    'Sony',
-    'Dell',
-    'ASUS',
-    'HP',
-    'Lenovo',
-    'Google',
-    'Canon',
-    'Bose',
+    'Anker',
+    'Baseus',
+    'Belkin',
+    'Bluetti',
     'DJI',
+    'EcoFlow',
+    'Eufy by Anker',
+    'JBL',
+    'Logitech',
+    'Samsung',
+    'Sandisk',
+    'Soundcore by Anker',
+    'TP Link',
+];
+
+// Sweech-style mega menu sections for SHOP
+const SHOP_MEGA_SECTIONS = [
+    {
+        title: 'Tech & Gadgets',
+        items: [
+            { label: 'Cables', slug: 'cables' },
+            { label: 'Chargers', slug: 'chargers' },
+            { label: 'Car Chargers and Accessories', slug: 'car-chargers-accessories' },
+            { label: 'Camera and Photo', slug: 'camera-photo' },
+            { label: 'Camera Drones', slug: 'camera-drones' },
+            { label: 'Phone and Computer Accessories', slug: 'phone-computer-accessories' },
+            { label: 'Data Hubs and Adaptors', slug: 'data-hubs-adaptors' },
+            { label: 'Laptop Bags, Cases & Sleeves', slug: 'laptop-bags-cases-sleeves' },
+            { label: 'Keyboards and Mice', slug: 'keyboards-mice' },
+            { label: 'Monitors and Displays', slug: 'monitors-displays' },
+            { label: 'Routers and Range Extenders', slug: 'routers-range-extenders' },
+            { label: 'Smart Watches & Activity Trackers', slug: 'smart-watches' },
+        ],
+    },
+    {
+        title: 'Audio',
+        items: [
+            { label: 'Bluetooth Speakers', slug: 'bluetooth-speakers' },
+            { label: 'Earphones', slug: 'earphones' },
+            { label: 'Headphones', slug: 'headphones' },
+            { label: 'Headsets', slug: 'headsets' },
+        ],
+    },
+    {
+        title: 'Portable Power and Back-up',
+        items: [
+            { label: 'Power Banks', slug: 'power-banks' },
+            { label: 'Power Stations', slug: 'power-stations' },
+            { label: 'Solar Panels', slug: 'solar-panels' },
+            { label: 'EcoFlow Extra Batteries', slug: 'ecoflow-extra-batteries' },
+            { label: 'EcoFlow Accessories', slug: 'ecoflow-accessories' },
+            { label: 'Power Strips & Surge Protection', slug: 'power-strips-surge-protection' },
+        ],
+    },
+    {
+        title: 'Home & Living',
+        items: [
+            { label: 'Electric Scooters', slug: 'electric-scooters' },
+            { label: 'Home Electronics & Appliances', slug: 'home-electronics-appliances' },
+            { label: 'Security and Surveillance', slug: 'security-surveillance' },
+            { label: 'Smart Home', slug: 'smart-home' },
+            { label: 'Travel and Outdoor', slug: 'travel-outdoor' },
+        ],
+    },
+    {
+        title: 'Data & Media Storage',
+        items: [
+            { label: 'External Hard Drives', slug: 'external-hard-drives' },
+            { label: 'External SSDs', slug: 'external-ssds' },
+            { label: 'Memory Cards', slug: 'memory-cards' },
+            { label: 'USB Flash Drives', slug: 'usb-flash-drives' },
+        ],
+    },
 ];
 
 const Header = ({ isCartOpen, setIsCartOpen }) => {
@@ -123,7 +185,7 @@ const Header = ({ isCartOpen, setIsCartOpen }) => {
             <header className="modern-header">
                 <div className="top-banner">
                     <div className="container">
-                        <p>🚀 Free Delivery on orders over KSh 20,000 | Support: +254 700 000 000</p>
+                        <p>Same day delivery for all orders placed before 1pm.</p>
                     </div>
                 </div>
 
@@ -134,19 +196,46 @@ const Header = ({ isCartOpen, setIsCartOpen }) => {
                             <Link to="/" className="brand-logo">
                                 <span className="logo-accent">C</span>ASEPROZ
                             </Link>
+                            <span className="partner-logo">ANKER</span>
                         </div>
 
-                        {/* Navigation Links */}
+                        {/* Navigation Links - Sweech-style */}
                         <nav className="central-nav">
                             <ul className="nav-list">
-                                <li className="nav-li dropdown-trigger" onClick={() => setIsModalOpen(true)}>
-                                    <button type="button" className="nav-link">
-                                        <i className="fas fa-th-large"></i> CATEGORIES
-                                    </button>
+                                <li className="nav-li">
+                                    <Link to="/" className="nav-link">
+                                        HOME
+                                    </Link>
                                 </li>
+
+                                <li className="nav-li shop-nav">
+                                    <button type="button" className="nav-link">
+                                        SHOP <i className="fas fa-chevron-down small-caret" />
+                                    </button>
+                                    <div className="shop-mega">
+                                        <div className="shop-mega-inner">
+                                            {SHOP_MEGA_SECTIONS.map((section) => (
+                                                <div key={section.title} className="shop-mega-column">
+                                                    <h4 className="shop-mega-title">{section.title}</h4>
+                                                    {section.items.map((item) => (
+                                                        <button
+                                                            key={item.slug}
+                                                            type="button"
+                                                            className="shop-mega-link"
+                                                            onClick={() => navigate(`/category/${item.slug}`)}
+                                                        >
+                                                            {item.label}
+                                                        </button>
+                                                    ))}
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                </li>
+
                                 <li className="nav-li brand-nav">
                                     <button type="button" className="nav-link">
-                                        <i className="fas fa-tags"></i> SHOP BY BRAND
+                                        SHOP BY BRAND <i className="fas fa-chevron-down small-caret" />
                                     </button>
                                     <div className="brand-mega">
                                         <div className="brand-mega-inner">
@@ -165,11 +254,23 @@ const Header = ({ isCartOpen, setIsCartOpen }) => {
                                         </div>
                                     </div>
                                 </li>
-                                <li className="nav-li">
-                                    <Link to="/" className="nav-link">HOME</Link>
-                                </li>
-                                <li className="nav-li">
-                                    <Link to="/contact" className="nav-link">CONTACT</Link>
+                                
+                                <li className="nav-li help-nav">
+                                    <button type="button" className="nav-link">
+                                        HELP CENTER <i className="fas fa-chevron-down small-caret" />
+                                    </button>
+                                    <div className="help-dropdown">
+                                        <Link to="/profile" className="help-link">My Account</Link>
+                                        <Link to="/cart" className="help-link">Shopping Cart</Link>
+                                        <Link to="/checkout" className="help-link">Checkout</Link>
+                                        <Link to="/orders" className="help-link">Order Tracking</Link>
+                                        <Link to="/favourites" className="help-link">Wishlist</Link>
+                                        <Link to="/delivery" className="help-link">Shipping &amp; Delivery Information</Link>
+                                        <Link to="/returns" className="help-link">Returns &amp; Refunds</Link>
+                                        <Link to="/faq" className="help-link">Warranty Policy &amp; FAQs</Link>
+                                        <Link to="/customer-support" className="help-link">Customer Support</Link>
+                                        <Link to="/contact" className="help-link">Contact</Link>
+                                    </div>
                                 </li>
                             </ul>
                         </nav>

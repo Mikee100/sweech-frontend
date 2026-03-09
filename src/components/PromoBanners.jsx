@@ -1,8 +1,14 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
+import { useSiteConfig } from '../context/SiteConfigContext';
 
 const PromoBanners = () => {
+    const { config } = useSiteConfig();
+
+    // For now, promo banners remain static. In the future you can extend SiteConfig
+    // to hold custom promo tiles as well.
+
     return (
         <section className="promo-banners container">
             <div className="promo-grid">

@@ -29,6 +29,8 @@ import Dashboard from './pages/Admin/Dashboard'
 import OrderList from './pages/Admin/OrderList'
 import UserList from './pages/Admin/UserList'
 import UserEdit from './pages/Admin/UserEdit'
+import SiteSettings from './pages/Admin/SiteSettings'
+import Discounts from './pages/Admin/Discounts'
 
 function App() {
   const [isCartOpen, setIsCartOpen] = useState(false);
@@ -74,6 +76,8 @@ function App() {
               <Route path="productlist" element={<ProductList />} />
               <Route path="product/create" element={<ProductEdit />} />
               <Route path="product/:id/edit" element={<ProductEdit />} />
+              <Route path="settings" element={<SiteSettings />} />
+              <Route path="discounts" element={<Discounts />} />
             </Route>
           </Route>
         </Routes>

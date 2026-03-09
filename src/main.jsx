@@ -4,6 +4,7 @@ import { BrowserRouter } from 'react-router-dom'
 import { CartProvider } from './context/CartContext.jsx'
 import { AuthProvider } from './context/AuthContext.jsx'
 import { FavoritesProvider } from './context/FavoritesContext.jsx'
+import { SiteConfigProvider } from './context/SiteConfigContext.jsx'
 import './index.css'
 import App from './App.jsx'
 
@@ -13,7 +14,9 @@ createRoot(document.getElementById('root')).render(
       <AuthProvider>
         <FavoritesProvider>
           <CartProvider>
-            <App />
+            <SiteConfigProvider>
+              <App />
+            </SiteConfigProvider>
           </CartProvider>
         </FavoritesProvider>
       </AuthProvider>

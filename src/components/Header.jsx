@@ -4,6 +4,7 @@ import CategoryModal from './CategoryModal';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
 import { useFavorites } from '../context/FavoritesContext';
+import { useSiteConfig } from '../context/SiteConfigContext';
 
 const BRANDS = [
     'Anker',
@@ -85,6 +86,7 @@ const Header = ({ isCartOpen, setIsCartOpen }) => {
     const { cartCount } = useCart();
     const { user, logout } = useAuth();
     const { favourites } = useFavorites();
+    const { config } = useSiteConfig();
     const navigate = useNavigate();
     const location = useLocation();
     const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
@@ -185,7 +187,36 @@ const Header = ({ isCartOpen, setIsCartOpen }) => {
             <header className="modern-header">
                 <div className="top-banner">
                     <div className="container">
-                        <p>Same day delivery for all orders placed before 1pm.</p>
+                        {config && config.promoBarText ? (
+                            config.promoBarLink ? (
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        if (config.promoBarLink.startsWith('http')) {
+                                            window.open(config.promoBarLink, '_blank');
+                                        } else {
+                                            navigate(config.promoBarLink);
+                                        }
+                                    }}
+                                    style={{
+                                        background: 'none',
+                                        border: 'none',
+                                        color: 'inherit',
+                                        cursor: 'pointer',
+                                        padding: 0,
+                                        font: 'inherit',
+                                        textDecoration: 'underline',
+                                        textUnderlineOffset: '2px',
+                                    }}
+                                >
+                                    {config.promoBarText}
+                                </button>
+                            ) : (
+                                <p>{config.promoBarText}</p>
+                            )
+                        ) : (
+                            <p>Same day delivery for all orders placed before 1pm.</p>
+                        )}
                     </div>
                 </div>
 

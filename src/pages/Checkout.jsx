@@ -3,10 +3,12 @@ import { useNavigate } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
 import { SHIPPING_ZONES } from '../constants/shippingZones';
+import { useSiteConfig } from '../context/SiteConfigContext';
 
 const Checkout = () => {
     const { cart, cartTotal, clearCart } = useCart();
     const { user } = useAuth();
+    const { config } = useSiteConfig();
     const navigate = useNavigate();
 
     const [address, setAddress] = useState('');
@@ -23,12 +25,19 @@ const Checkout = () => {
         return stored || SHIPPING_ZONES[0].id;
     });
 
+    const [discountCode, setDiscountCode] = useState('');
+    const [discountAmount, setDiscountAmount] = useState(0);
+    const [discountMessage, setDiscountMessage] = useState('');
+    const [applyingDiscount, setApplyingDiscount] = useState(false);
+
     const selectedZone =
         SHIPPING_ZONES.find((zone) => zone.id === selectedZoneId) || SHIPPING_ZONES[0];
 
+    const taxRate = typeof config?.taxRate === 'number' ? config.taxRate : 0.16;
     const shippingPrice = selectedZone.price;
-    const taxPrice = cartTotal * 0.16;
-    const totalPrice = cartTotal + shippingPrice + taxPrice;
+    const taxPrice = cartTotal * taxRate;
+    const subtotalBeforeDiscount = cartTotal;
+    const totalPrice = subtotalBeforeDiscount + shippingPrice + taxPrice - discountAmount;
 
     useEffect(() => {
         if (!user) {
@@ -66,7 +75,9 @@ const Checkout = () => {
             itemsPrice: cartTotal,
             shippingPrice,
             taxPrice,
-            totalPrice
+            totalPrice,
+            discountCode: discountAmount > 0 ? discountCode.trim() || null : null,
+            discountAmount
         };
 
         try {
@@ -98,6 +109,42 @@ const Checkout = () => {
             setError(message);
         } finally {
             setLoading(false);
+        }
+    };
+
+    const handleApplyDiscount = async () => {
+        const code = discountCode.trim();
+        if (!code) {
+            setDiscountMessage('Enter a code to apply.');
+            return;
+        }
+        setApplyingDiscount(true);
+        setDiscountMessage('');
+        setError('');
+        try {
+            const response = await fetch(`${import.meta.env.VITE_API_URL}/api/discounts/apply`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: `Bearer ${user.token}`,
+                },
+                body: JSON.stringify({
+                    code,
+                    itemsTotal: cartTotal,
+                }),
+            });
+            const data = await response.json();
+            if (!response.ok) {
+                throw new Error(data.message || 'Failed to apply discount code');
+            }
+            setDiscountAmount(data.discountAmount || 0);
+            setDiscountMessage(data.message || 'Discount code applied.');
+        } catch (err) {
+            setDiscountAmount(0);
+            setDiscountMessage('');
+            setError(err.message || 'Failed to apply discount code.');
+        } finally {
+            setApplyingDiscount(false);
         }
     };
 
@@ -166,7 +213,7 @@ const Checkout = () => {
                             ))}
                         </div>
 
-                        <div style={{ display: 'grid', gap: '10px', marginBottom: '20px', fontSize: '14px' }}>
+                        <div style={{ display: 'grid', gap: '10px', marginBottom: '16px', fontSize: '14px' }}>
                             <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                                 <span style={{ color: '#666' }}>Items Subtotal:</span>
                                 <span>KSh {cartTotal.toLocaleString()}</span>
@@ -176,13 +223,56 @@ const Checkout = () => {
                                 <span>{shippingPrice === 0 ? 'Pick up (Free)' : `KSh ${shippingPrice.toLocaleString()}`}</span>
                             </div>
                             <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                                <span style={{ color: '#666' }}>Tax (16%):</span>
+                                <span style={{ color: '#666' }}>Tax ({Math.round(taxRate * 100)}%):</span>
                                 <span>KSh {taxPrice.toLocaleString()}</span>
                             </div>
+                            {discountAmount > 0 && (
+                                <div style={{ display: 'flex', justifyContent: 'space-between', color: '#16a34a' }}>
+                                    <span>Discount</span>
+                                    <span>- KSh {discountAmount.toLocaleString()}</span>
+                                </div>
+                            )}
                             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '18px', fontWeight: 'bold', borderTop: '1px solid #eee', paddingTop: '15px', marginTop: '10px', color: '#E41E26' }}>
                                 <span>Total:</span>
                                 <span>KSh {totalPrice.toLocaleString()}</span>
                             </div>
+                        </div>
+
+                        <div style={{ marginBottom: '16px' }}>
+                            <label style={{ display: 'block', marginBottom: '6px', fontSize: '13px', fontWeight: 600, color: '#374151' }}>
+                                Discount code
+                            </label>
+                            <div style={{ display: 'flex', gap: '8px' }}>
+                                <input
+                                    type="text"
+                                    value={discountCode}
+                                    onChange={(e) => setDiscountCode(e.target.value)}
+                                    placeholder="Enter promo code"
+                                    style={{ flex: 1, padding: '10px 12px', borderRadius: '8px', border: '1px solid #e5e7eb', fontSize: '14px' }}
+                                />
+                                <button
+                                    type="button"
+                                    onClick={handleApplyDiscount}
+                                    disabled={applyingDiscount || !discountCode.trim()}
+                                    style={{
+                                        padding: '10px 14px',
+                                        borderRadius: '8px',
+                                        border: 'none',
+                                        backgroundColor: applyingDiscount || !discountCode.trim() ? '#e5e7eb' : '#111827',
+                                        color: applyingDiscount || !discountCode.trim() ? '#9ca3af' : '#ffffff',
+                                        fontSize: '13px',
+                                        fontWeight: 600,
+                                        cursor: applyingDiscount || !discountCode.trim() ? 'not-allowed' : 'pointer',
+                                    }}
+                                >
+                                    {applyingDiscount ? 'Applying...' : 'Apply'}
+                                </button>
+                            </div>
+                            {discountMessage && (
+                                <p style={{ marginTop: '6px', fontSize: '12px', color: '#16a34a' }}>
+                                    {discountMessage}
+                                </p>
+                            )}
                         </div>
 
                         {success && (

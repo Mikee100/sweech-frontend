@@ -2,8 +2,9 @@ import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { useSiteConfig } from '../context/SiteConfigContext';
 
-const slides = [
+const defaultSlides = [
     {
         id: 1,
         title: "The Future of Gaming",
@@ -35,8 +36,15 @@ const slides = [
 
 const HomeSlider = () => {
     const [current, setCurrent] = useState(0);
+    const { config } = useSiteConfig();
     const touchStartX = useRef(null);
     const touchEndX = useRef(null);
+
+    const activeSlidesFromConfig = Array.isArray(config?.heroSlides)
+        ? config.heroSlides.filter((s) => s && s.active !== false && s.title && s.image)
+        : [];
+
+    const slides = activeSlidesFromConfig.length > 0 ? activeSlidesFromConfig : defaultSlides;
 
     useEffect(() => {
         const timer = setInterval(() => {
@@ -46,11 +54,11 @@ const HomeSlider = () => {
     }, []);
 
     const nextSlide = () => {
-        setCurrent(current === slides.length - 1 ? 0 : current + 1);
+        setCurrent((prev) => (prev === slides.length - 1 ? 0 : prev + 1));
     };
 
     const prevSlide = () => {
-        setCurrent(current === 0 ? slides.length - 1 : current - 1);
+        setCurrent((prev) => (prev === 0 ? slides.length - 1 : prev - 1));
     };
 
     // Touch handlers for swipe support

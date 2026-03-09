@@ -7,26 +7,7 @@ import ProductCard from '../components/ProductCard';
 import { ChevronRight } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
-const curatedCollections = [
-    {
-        id: 'work-essentials',
-        title: 'Work & Study Essentials',
-        tagline: 'Laptops, tablets, and accessories for productive days.',
-        query: 'office',
-    },
-    {
-        id: 'creator-setup',
-        title: 'Creator Setup',
-        tagline: 'Gear for designers, photographers, and content creators.',
-        query: 'creator',
-    },
-    {
-        id: 'gaming-battle-station',
-        title: 'Gaming Battle Station',
-        tagline: 'Consoles, monitors, and accessories for serious gamers.',
-        query: 'gaming',
-    },
-];
+import { useSiteConfig } from '../context/SiteConfigContext';
 
 const homeBrands = [
     'Anker',
@@ -65,6 +46,7 @@ const homeTestimonials = [
 const Home = () => {
     const [products, setProducts] = useState([]);
     const [loading, setLoading] = useState(true);
+    const { config } = useSiteConfig();
 
     useEffect(() => {
         const fetchProducts = async () => {
@@ -169,6 +151,30 @@ const Home = () => {
 
     const hasAnyStats =
         products.length > 0 || onSale.length > 0 || latest.length > 0;
+
+    const curatedCollectionsFromConfig =
+        Array.isArray(config?.curatedCollections) && config.curatedCollections.length
+            ? config.curatedCollections
+            : [
+                  {
+                      id: 'work-essentials',
+                      title: 'Work & Study Essentials',
+                      tagline: 'Laptops, tablets, and accessories for productive days.',
+                      query: 'office',
+                  },
+                  {
+                      id: 'creator-setup',
+                      title: 'Creator Setup',
+                      tagline: 'Gear for designers, photographers, and content creators.',
+                      query: 'creator',
+                  },
+                  {
+                      id: 'gaming-battle-station',
+                      title: 'Gaming Battle Station',
+                      tagline: 'Consoles, monitors, and accessories for serious gamers.',
+                      query: 'gaming',
+                  },
+              ];
 
     return (
         <div className="home-page">
@@ -492,7 +498,7 @@ const Home = () => {
                     </div>
                 </div>
                 <div className="collections-grid">
-                    {curatedCollections.map((collection) => (
+                    {curatedCollectionsFromConfig.map((collection) => (
                         <Link
                             key={collection.id}
                             to={`/search?q=${encodeURIComponent(collection.query)}`}

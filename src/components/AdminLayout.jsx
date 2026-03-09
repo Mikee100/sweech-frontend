@@ -107,6 +107,38 @@ const AdminLayout = () => {
                     >
                         <i className="fas fa-users"></i> Users
                     </NavLink>
+                    <NavLink
+                        to="/admin/discounts"
+                        style={({ isActive }) => ({
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '15px',
+                            padding: '15px 25px',
+                            color: isActive ? 'white' : '#999',
+                            textDecoration: 'none',
+                            backgroundColor: isActive ? '#E41E26' : 'transparent',
+                            fontSize: '15px',
+                            transition: 'all 0.3s'
+                        })}
+                    >
+                        <i className="fas fa-tags"></i> Discounts
+                    </NavLink>
+                    <NavLink
+                        to="/admin/settings"
+                        style={({ isActive }) => ({
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '15px',
+                            padding: '15px 25px',
+                            color: isActive ? 'white' : '#999',
+                            textDecoration: 'none',
+                            backgroundColor: isActive ? '#E41E26' : 'transparent',
+                            fontSize: '15px',
+                            transition: 'all 0.3s'
+                        })}
+                    >
+                        <i className="fas fa-cog"></i> Site Settings
+                    </NavLink>
                 </nav>
 
                 <div style={{ padding: '20px', borderTop: '1px solid #333' }}>

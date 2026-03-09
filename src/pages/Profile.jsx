@@ -1,9 +1,9 @@
-import React, { useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useEffect, useState } from 'react';
+import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
 const Profile = () => {
-    const { user } = useAuth();
+    const { user, updateProfile } = useAuth();
     const navigate = useNavigate();
 
     useEffect(() => {
@@ -16,61 +16,193 @@ const Profile = () => {
         return null;
     }
 
+    const [name, setName] = useState(user.name || '');
+    const [email, setEmail] = useState(user.email || '');
+    const [password, setPassword] = useState('');
+    const [confirmPassword, setConfirmPassword] = useState('');
+    const [loading, setLoading] = useState(false);
+    const [status, setStatus] = useState({ type: '', message: '' });
+
+    const firstName = user.name ? user.name.split(' ')[0] : 'there';
+    const roleLabel = user.role ? user.role : 'Customer';
+
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        setStatus({ type: '', message: '' });
+
+        if (password && password !== confirmPassword) {
+            setStatus({ type: 'error', message: 'Passwords do not match.' });
+            return;
+        }
+
+        try {
+            setLoading(true);
+            const payload = { name, email };
+            if (password) {
+                payload.password = password;
+            }
+            await updateProfile(payload);
+            setStatus({ type: 'success', message: 'Profile updated successfully.' });
+            setPassword('');
+            setConfirmPassword('');
+        } catch (err) {
+            setStatus({ type: 'error', message: err.message || 'Failed to update profile.' });
+        } finally {
+            setLoading(false);
+        }
+    };
+
     return (
-        <div className="container" style={{ padding: '60px 0', maxWidth: '900px' }}>
-            <div style={{ marginBottom: '30px' }}>
-                <p style={{ fontSize: '12px', textTransform: 'uppercase', letterSpacing: '1px', color: '#9ca3af', marginBottom: '8px' }}>
-                    Account
-                </p>
-                <h1 style={{ fontSize: '28px', fontWeight: '800', margin: 0 }}>My Profile</h1>
-                <p style={{ color: '#6b7280', marginTop: '8px', fontSize: '14px' }}>
-                    Manage the basic information associated with your CaseProz account.
-                </p>
-            </div>
-
-            <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '30px', alignItems: 'flex-start' }}>
-                <div style={{ backgroundColor: '#ffffff', borderRadius: '16px', padding: '28px', boxShadow: '0 10px 30px rgba(0,0,0,0.04)', border: '1px solid #f3f4f6' }}>
-                    <h2 style={{ fontSize: '16px', fontWeight: '700', marginBottom: '20px', borderBottom: '1px solid #f3f4f6', paddingBottom: '12px' }}>
-                        Profile details
-                    </h2>
-                    <div style={{ display: 'grid', gap: '18px' }}>
-                        <div>
-                            <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.08em', color: '#9ca3af', marginBottom: '6px' }}>
-                                Full name
-                            </label>
-                            <div style={{ padding: '10px 12px', borderRadius: '10px', border: '1px solid #e5e7eb', backgroundColor: '#f9fafb', fontSize: '14px' }}>
-                                {user.name}
-                            </div>
-                        </div>
-                        <div>
-                            <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.08em', color: '#9ca3af', marginBottom: '6px' }}>
-                                Email address
-                            </label>
-                            <div style={{ padding: '10px 12px', borderRadius: '10px', border: '1px solid #e5e7eb', backgroundColor: '#f9fafb', fontSize: '14px' }}>
-                                {user.email}
-                            </div>
-                        </div>
-                        <div style={{ marginTop: '8px', fontSize: '12px', color: '#9ca3af' }}>
-                            Profile editing will be available soon. For now, contact support to change your account details.
-                        </div>
+        <div className="account-page">
+            <div className="container">
+                <header className="account-header">
+                    <p className="account-eyebrow">Account</p>
+                    <div className="account-title-row">
+                        <h1 className="account-title">My Account</h1>
+                        <span className="account-chip">{roleLabel}</span>
                     </div>
-                </div>
+                    <p className="account-subtitle">
+                        Manage your CaseProz profile, track your orders, and quickly jump to your favourite sections.
+                    </p>
+                </header>
 
-                <div style={{ backgroundColor: '#0f172a', borderRadius: '16px', padding: '24px', color: '#e5e7eb', boxShadow: '0 20px 40px rgba(15,23,42,0.45)' }}>
-                    <p style={{ fontSize: '12px', textTransform: 'uppercase', letterSpacing: '0.12em', color: '#f97316', marginBottom: '10px' }}>
-                        Overview
-                    </p>
-                    <h3 style={{ fontSize: '18px', fontWeight: '700', marginBottom: '8px' }}>
-                        Welcome back, {user.name.split(' ')[0]}.
-                    </h3>
-                    <p style={{ fontSize: '13px', color: '#9ca3af', marginBottom: '18px' }}>
-                        You&apos;re signed in with <span style={{ color: '#e5e7eb' }}>{user.email}</span>.
-                    </p>
-                    <ul style={{ listStyle: 'none', padding: 0, margin: 0, fontSize: '13px', display: 'grid', gap: '8px' }}>
-                        <li>• Track your orders from the <strong>My Orders</strong> page.</li>
-                        <li>• Access the <strong>Admin Panel</strong> if you&apos;re an admin user.</li>
-                        <li>• Secure logout anytime from the header dropdown.</li>
-                    </ul>
+                <div className="account-layout">
+                    <section className="account-card">
+                        <h2 className="account-card-title">Profile details</h2>
+                        <form className="account-fields" onSubmit={handleSubmit}>
+                            <div>
+                                <label className="account-label">Full name</label>
+                                <div className="account-value">
+                                    <input
+                                        className="account-input"
+                                        type="text"
+                                        value={name}
+                                        onChange={(e) => setName(e.target.value)}
+                                        placeholder="Your full name"
+                                        required
+                                    />
+                                </div>
+                            </div>
+                            <div>
+                                <label className="account-label">Email address</label>
+                                <div className="account-value">
+                                    <input
+                                        className="account-input"
+                                        type="email"
+                                        value={email}
+                                        onChange={(e) => setEmail(e.target.value)}
+                                        placeholder="you@example.com"
+                                        required
+                                    />
+                                </div>
+                            </div>
+                            <div>
+                                <label className="account-label">New password</label>
+                                <div className="account-value">
+                                    <input
+                                        className="account-input"
+                                        type="password"
+                                        value={password}
+                                        onChange={(e) => setPassword(e.target.value)}
+                                        placeholder="Leave blank to keep current password"
+                                    />
+                                </div>
+                            </div>
+                            <div>
+                                <label className="account-label">Confirm password</label>
+                                <div className="account-value">
+                                    <input
+                                        className="account-input"
+                                        type="password"
+                                        value={confirmPassword}
+                                        onChange={(e) => setConfirmPassword(e.target.value)}
+                                        placeholder="Re-enter new password"
+                                    />
+                                </div>
+                            </div>
+                            <p className="account-footnote">
+                                Update your basic account details. Changing your email or password will apply the next time you sign in.
+                            </p>
+                            <div className="account-actions">
+                                <button type="submit" className="account-save-btn" disabled={loading}>
+                                    {loading ? 'Saving...' : 'Save changes'}
+                                </button>
+                                {status.message && (
+                                    <span
+                                        className={`account-status ${status.type === 'success' ? 'success' : status.type === 'error' ? 'error' : ''}`}
+                                    >
+                                        {status.message}
+                                    </span>
+                                )}
+                            </div>
+                        </form>
+                    </section>
+
+                    <aside className="account-side-card">
+                        <p className="account-side-eyebrow">Overview</p>
+                        <h3 className="account-side-title">Welcome back, {firstName}.</h3>
+                        <p className="account-side-text">
+                            You&apos;re signed in with <span style={{ color: '#e5e7eb' }}>{user.email}</span>. From here you can quickly
+                            jump to your key account areas.
+                        </p>
+                        <div className="account-quick-grid">
+                            <Link to="/orders" className="account-quick-link">
+                                <div className="account-quick-item">
+                                    <div className="account-quick-label">
+                                        <i className="fas fa-history" />
+                                        My Orders
+                                    </div>
+                                    <p className="account-quick-copy">View and track your recent purchases.</p>
+                                </div>
+                            </Link>
+                            <Link to="/favourites" className="account-quick-link">
+                                <div className="account-quick-item">
+                                    <div className="account-quick-label">
+                                        <i className="fas fa-heart" />
+                                        Favourites
+                                    </div>
+                                    <p className="account-quick-copy">Browse items you&apos;ve saved for later.</p>
+                                </div>
+                            </Link>
+                            <div className="account-quick-item disabled">
+                                <div className="account-quick-label">
+                                    <i className="fas fa-map-marker-alt" />
+                                    Addresses
+                                </div>
+                                <p className="account-quick-copy">Saved delivery addresses coming soon.</p>
+                            </div>
+                            <div className="account-quick-item disabled">
+                                <div className="account-quick-label">
+                                    <i className="fas fa-lock" />
+                                    Security
+                                </div>
+                                <p className="account-quick-copy">Contact support to change your password.</p>
+                            </div>
+                        </div>
+                        <div className="account-social">
+                            <span className="account-social-label">Stay connected:</span>
+                            <div className="account-social-links">
+                                <a
+                                    href="https://www.instagram.com/caseproz/"
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className="account-social-link"
+                                >
+                                    <i className="fab fa-instagram" />
+                                    Instagram
+                                </a>
+                                <a
+                                    href="https://www.facebook.com/profile.php?id=61585137213302&ref=NONE_ig_profile_ac"
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className="account-social-link"
+                                >
+                                    <i className="fab fa-facebook" />
+                                    Facebook
+                                </a>
+                            </div>
+                        </div>
+                    </aside>
                 </div>
             </div>
         </div>

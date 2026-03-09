@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState } from 'react';
 
 const AuthContext = createContext();
 
@@ -51,8 +51,33 @@ export const AuthProvider = ({ children }) => {
         localStorage.removeItem('userInfo');
     };
 
+    const updateProfile = async (updates) => {
+        if (!user || !user.token) {
+            throw new Error('Not authenticated');
+        }
+
+        const response = await fetch(`${import.meta.env.VITE_API_URL}/api/users/profile`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${user.token}`,
+            },
+            body: JSON.stringify(updates),
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+            setUser(data);
+            localStorage.setItem('userInfo', JSON.stringify(data));
+            return data;
+        } else {
+            throw new Error(data.message || 'Failed to update profile');
+        }
+    };
+
     return (
-        <AuthContext.Provider value={{ user, login, register, logout }}>
+        <AuthContext.Provider value={{ user, login, register, logout, updateProfile }}>
             {children}
         </AuthContext.Provider>
     );

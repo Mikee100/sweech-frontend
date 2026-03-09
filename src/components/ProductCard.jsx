@@ -69,9 +69,6 @@ const ProductCard = ({ product, highlightQuery }) => {
                             <i className={isFavourite(product._id) ? 'fas fa-heart' : 'far fa-heart'}></i>
                         </button>
                     </div>
-                    <div className="product-readmore">
-                        <span>Read more</span>
-                    </div>
                 </div>
             </Link>
             <div className="product-info">
@@ -102,7 +99,7 @@ const ProductCard = ({ product, highlightQuery }) => {
                         </div>
                     </div>
                     <div className="product-footer-layer product-footer-readmore">
-                        <span className="product-readmore-pill">Read more</span>
+                        <span className="product-readmore-pill">Read more...</span>
                     </div>
                 </div>
             </div>

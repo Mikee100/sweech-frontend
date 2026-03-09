@@ -69,10 +69,32 @@ const OrderDetails = () => {
 
     return (
         <div className="order-details-page container" style={{ padding: '60px 0' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '30px' }}>
-                <Link to="/" style={{ color: '#E41E26', textDecoration: 'none' }}>Home</Link>
-                <i className="fas fa-chevron-right" style={{ fontSize: '10px', color: '#ccc' }}></i>
-                <span style={{ fontWeight: 'bold' }}>Order #{order._id}</span>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px', marginBottom: '30px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <Link to="/" style={{ color: '#E41E26', textDecoration: 'none' }}>Home</Link>
+                    <i className="fas fa-chevron-right" style={{ fontSize: '10px', color: '#ccc' }}></i>
+                    <span style={{ fontWeight: 'bold' }}>Order #{order._id}</span>
+                </div>
+                <button
+                    type="button"
+                    onClick={() => window.print()}
+                    style={{
+                        padding: '8px 14px',
+                        borderRadius: '8px',
+                        border: '1px solid #e5e7eb',
+                        backgroundColor: 'white',
+                        color: '#111827',
+                        fontSize: '12px',
+                        fontWeight: 600,
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                    }}
+                >
+                    <i className="fas fa-print"></i>
+                    Print / Save as PDF
+                </button>
             </div>
 
             <div style={{ backgroundColor: '#fdf2f2', padding: '30px', borderRadius: '12px', marginBottom: '40px', border: '1px solid #fee2e2' }}>

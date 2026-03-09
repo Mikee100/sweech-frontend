@@ -7,6 +7,8 @@ const UserList = () => {
     const [users, setUsers] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
+    const [searchEmail, setSearchEmail] = useState('');
+    const [searchName, setSearchName] = useState('');
 
     useEffect(() => {
         const fetchUsers = async () => {
@@ -64,9 +66,61 @@ const UserList = () => {
         );
     if (error) return <div style={{ color: 'red' }}>{error}</div>;
 
+    const filteredUsers = users.filter((u) => {
+        const matchEmail = searchEmail
+            ? u.email.toLowerCase().includes(searchEmail.toLowerCase())
+            : true;
+        const matchName = searchName
+            ? (u.name || '').toLowerCase().includes(searchName.toLowerCase())
+            : true;
+        return matchEmail && matchName;
+    });
+
+    const getRoleLabel = (u) => {
+        if (u.role) return u.role;
+        return u.isAdmin ? 'MANAGER' : 'CUSTOMER';
+    };
+
     return (
         <div>
-            <h1 style={{ fontSize: '28px', marginBottom: '30px', color: '#333' }}>Users</h1>
+            <h1 style={{ fontSize: '28px', marginBottom: '20px', color: '#333' }}>Users</h1>
+
+            <div
+                style={{
+                    marginBottom: '16px',
+                    padding: '16px',
+                    backgroundColor: 'white',
+                    borderRadius: '10px',
+                    boxShadow: '0 2px 4px rgba(0,0,0,0.03)',
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
+                    gap: '12px',
+                }}
+            >
+                <div>
+                    <label style={{ display: 'block', marginBottom: '4px', fontSize: '12px', color: '#6b7280' }}>Search by email</label>
+                    <input
+                        type="text"
+                        value={searchEmail}
+                        onChange={(e) => setSearchEmail(e.target.value)}
+                        placeholder="customer@example.com"
+                        style={{ width: '100%', padding: '8px 10px', borderRadius: '8px', border: '1px solid #e5e7eb', fontSize: '13px' }}
+                    />
+                </div>
+                <div>
+                    <label style={{ display: 'block', marginBottom: '4px', fontSize: '12px', color: '#6b7280' }}>Search by name</label>
+                    <input
+                        type="text"
+                        value={searchName}
+                        onChange={(e) => setSearchName(e.target.value)}
+                        placeholder="Customer name"
+                        style={{ width: '100%', padding: '8px 10px', borderRadius: '8px', border: '1px solid #e5e7eb', fontSize: '13px' }}
+                    />
+                </div>
+                <div style={{ alignSelf: 'flex-end', fontSize: '13px', color: '#6b7280' }}>
+                    Showing {filteredUsers.length} of {users.length} users
+                </div>
+            </div>
 
             <div style={{ backgroundColor: 'white', padding: '25px', borderRadius: '10px', boxShadow: '0 4px 6px rgba(0,0,0,0.05)', overflowX: 'auto' }}>
                 <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
@@ -75,17 +129,31 @@ const UserList = () => {
                             <th style={{ padding: '12px', color: '#666', fontSize: '14px' }}>ID</th>
                             <th style={{ padding: '12px', color: '#666', fontSize: '14px' }}>NAME</th>
                             <th style={{ padding: '12px', color: '#666', fontSize: '14px' }}>EMAIL</th>
+                            <th style={{ padding: '12px', color: '#666', fontSize: '14px' }}>ROLE</th>
                             <th style={{ padding: '12px', color: '#666', fontSize: '14px' }}>ADMIN</th>
                             <th style={{ padding: '12px', color: '#666', fontSize: '14px' }}>ACTIONS</th>
                         </tr>
                     </thead>
                     <tbody>
-                        {users.map((currentUser) => (
+                        {filteredUsers.map((currentUser) => (
                             <tr key={currentUser._id} style={{ borderBottom: '1px solid #eee' }}>
                                 <td style={{ padding: '12px', fontSize: '14px', color: '#333' }}>{currentUser._id}</td>
                                 <td style={{ padding: '12px', fontSize: '14px', color: '#333' }}>{currentUser.name}</td>
                                 <td style={{ padding: '12px', fontSize: '14px', color: '#333' }}>
                                     <a href={`mailto:${currentUser.email}`} style={{ color: '#3b82f6', textDecoration: 'none' }}>{currentUser.email}</a>
+                                </td>
+                                <td style={{ padding: '12px', fontSize: '14px', color: '#333' }}>
+                                    <span style={{
+                                        padding: '4px 10px',
+                                        borderRadius: '999px',
+                                        fontSize: '11px',
+                                        fontWeight: 700,
+                                        backgroundColor: currentUser.isAdmin ? '#eef2ff' : '#f3f4f6',
+                                        color: currentUser.isAdmin ? '#4f46e5' : '#4b5563',
+                                        textTransform: 'uppercase'
+                                    }}>
+                                        {getRoleLabel(currentUser)}
+                                    </span>
                                 </td>
                                 <td style={{ padding: '12px', fontSize: '14px' }}>
                                     {currentUser.isAdmin ? (

@@ -9,11 +9,18 @@ const ProductList = () => {
     const { user } = useAuth();
     const navigate = useNavigate();
 
+    const [selectedProductIds, setSelectedProductIds] = useState([]);
+    const [bulkPricePercent, setBulkPricePercent] = useState('');
+    const [bulkPriceMode, setBulkPriceMode] = useState('increasePercent');
+    const [bulkUpdating, setBulkUpdating] = useState(false);
+    const [availabilityUpdating, setAvailabilityUpdating] = useState(false);
+
     const fetchProducts = async () => {
         try {
             const response = await fetch(`${import.meta.env.VITE_API_URL}/api/products`);
             const data = await response.json();
             setProducts(data);
+            setSelectedProductIds([]);
             setLoading(false);
         } catch (err) {
             setError('Failed to fetch products');
@@ -23,6 +30,7 @@ const ProductList = () => {
 
     useEffect(() => {
         fetchProducts();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     const deleteHandler = async (id) => {
@@ -44,6 +52,101 @@ const ProductList = () => {
                 alert('Something went wrong');
             }
         }
+    };
+
+    const toggleSelectProduct = (productId) => {
+        setSelectedProductIds((prev) =>
+            prev.includes(productId) ? prev.filter((id) => id !== productId) : [...prev, productId]
+        );
+    };
+
+    const toggleSelectAll = () => {
+        if (selectedProductIds.length === products.length) {
+            setSelectedProductIds([]);
+        } else {
+            setSelectedProductIds(products.map((p) => p._id));
+        }
+    };
+
+    const handleBulkAvailability = async (isActive) => {
+        if (selectedProductIds.length === 0) return;
+        const label = isActive ? 'activate' : 'deactivate';
+        if (!window.confirm(`Are you sure you want to ${label} ${selectedProductIds.length} products?`)) {
+            return;
+        }
+        setAvailabilityUpdating(true);
+        try {
+            const response = await fetch(`${import.meta.env.VITE_API_URL}/api/products/bulk/availability`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: `Bearer ${user.token}`,
+                },
+                body: JSON.stringify({ productIds: selectedProductIds, isActive }),
+            });
+            const data = await response.json();
+            if (!response.ok) {
+                throw new Error(data.message || 'Failed to update availability');
+            }
+            fetchProducts();
+        } catch (err) {
+            alert(err.message || 'Failed to update availability');
+        } finally {
+            setAvailabilityUpdating(false);
+        }
+    };
+
+    const handleBulkPriceUpdate = async () => {
+        if (selectedProductIds.length === 0) return;
+        const value = Number(bulkPricePercent);
+        if (!Number.isFinite(value) || value === 0) {
+            alert('Please enter a non-zero percentage value.');
+            return;
+        }
+        const label =
+            bulkPriceMode === 'increasePercent'
+                ? 'increase'
+                : 'decrease';
+        if (
+            !window.confirm(
+                `Are you sure you want to ${label} prices by ${Math.abs(
+                    value
+                )}% for ${selectedProductIds.length} products?`
+            )
+        ) {
+            return;
+        }
+
+        setBulkUpdating(true);
+        try {
+            const response = await fetch(`${import.meta.env.VITE_API_URL}/api/products/bulk/price`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: `Bearer ${user.token}`,
+                },
+                body: JSON.stringify({
+                    productIds: selectedProductIds,
+                    mode: bulkPriceMode,
+                    value,
+                }),
+            });
+            const data = await response.json();
+            if (!response.ok) {
+                throw new Error(data.message || 'Failed to update prices');
+            }
+            setBulkPricePercent('');
+            fetchProducts();
+        } catch (err) {
+            alert(err.message || 'Failed to update prices');
+        } finally {
+            setBulkUpdating(false);
+        }
+    };
+
+    const handleExportCsv = () => {
+        const url = `${import.meta.env.VITE_API_URL}/api/products/export`;
+        window.open(url, '_blank');
     };
 
     const styles = {
@@ -151,9 +254,151 @@ const ProductList = () => {
                     <h1 style={styles.title}>Products List</h1>
                     <p style={{ color: '#666', marginTop: '5px' }}>Manage all your physical and digital inventory in one place.</p>
                 </div>
-                <Link to="/admin/product/create" style={styles.createBtn}>
-                    <i className="fas fa-plus"></i> Add New Product
-                </Link>
+                <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+                    <button
+                        type="button"
+                        onClick={handleExportCsv}
+                        style={{
+                            padding: '10px 16px',
+                            borderRadius: '10px',
+                            border: '1px solid #e5e7eb',
+                            backgroundColor: '#fff',
+                            color: '#111827',
+                            fontSize: '13px',
+                            fontWeight: 600,
+                            cursor: 'pointer',
+                        }}
+                    >
+                        <i className="fas fa-file-export" style={{ marginRight: '6px' }}></i>
+                        Export CSV
+                    </button>
+                    <Link to="/admin/product/create" style={styles.createBtn}>
+                        <i className="fas fa-plus"></i> Add New Product
+                    </Link>
+                </div>
+            </div>
+
+            {/* Bulk controls */}
+            <div
+                style={{
+                    marginBottom: '16px',
+                    padding: '12px 16px',
+                    backgroundColor: 'white',
+                    borderRadius: '12px',
+                    boxShadow: '0 2px 4px rgba(0,0,0,0.03)',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    gap: '16px',
+                    alignItems: 'center',
+                    fontSize: '13px',
+                    color: '#4b5563',
+                }}
+            >
+                <div>
+                    {selectedProductIds.length > 0 ? (
+                        <span>{selectedProductIds.length} selected</span>
+                    ) : (
+                        <span>{products.length} products</span>
+                    )}
+                </div>
+                <div style={{ display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
+                    <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                        <span style={{ fontSize: '12px', color: '#6b7280' }}>Availability:</span>
+                        <button
+                            type="button"
+                            disabled={selectedProductIds.length === 0 || availabilityUpdating}
+                            onClick={() => handleBulkAvailability(true)}
+                            style={{
+                                padding: '6px 10px',
+                                borderRadius: '8px',
+                                border: 'none',
+                                backgroundColor:
+                                    selectedProductIds.length === 0 || availabilityUpdating ? '#e5e7eb' : '#16a34a',
+                                color:
+                                    selectedProductIds.length === 0 || availabilityUpdating ? '#9ca3af' : '#ffffff',
+                                fontSize: '12px',
+                                fontWeight: 600,
+                                cursor:
+                                    selectedProductIds.length === 0 || availabilityUpdating
+                                        ? 'not-allowed'
+                                        : 'pointer',
+                            }}
+                        >
+                            Activate
+                        </button>
+                        <button
+                            type="button"
+                            disabled={selectedProductIds.length === 0 || availabilityUpdating}
+                            onClick={() => handleBulkAvailability(false)}
+                            style={{
+                                padding: '6px 10px',
+                                borderRadius: '8px',
+                                border: 'none',
+                                backgroundColor:
+                                    selectedProductIds.length === 0 || availabilityUpdating ? '#e5e7eb' : '#dc2626',
+                                color:
+                                    selectedProductIds.length === 0 || availabilityUpdating ? '#9ca3af' : '#ffffff',
+                                fontSize: '12px',
+                                fontWeight: 600,
+                                cursor:
+                                    selectedProductIds.length === 0 || availabilityUpdating
+                                        ? 'not-allowed'
+                                        : 'pointer',
+                            }}
+                        >
+                            Deactivate
+                        </button>
+                    </div>
+                    <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                        <span style={{ fontSize: '12px', color: '#6b7280' }}>Bulk price:</span>
+                        <select
+                            value={bulkPriceMode}
+                            onChange={(e) => setBulkPriceMode(e.target.value)}
+                            style={{
+                                padding: '6px 8px',
+                                borderRadius: '8px',
+                                border: '1px solid #e5e7eb',
+                                fontSize: '12px',
+                            }}
+                        >
+                            <option value="increasePercent">Increase %</option>
+                            <option value="decreasePercent">Decrease %</option>
+                        </select>
+                        <input
+                            type="number"
+                            value={bulkPricePercent}
+                            onChange={(e) => setBulkPricePercent(e.target.value)}
+                            placeholder="%"
+                            style={{
+                                width: '80px',
+                                padding: '6px 8px',
+                                borderRadius: '8px',
+                                border: '1px solid #e5e7eb',
+                                fontSize: '12px',
+                            }}
+                        />
+                        <button
+                            type="button"
+                            disabled={selectedProductIds.length === 0 || bulkUpdating}
+                            onClick={handleBulkPriceUpdate}
+                            style={{
+                                padding: '6px 10px',
+                                borderRadius: '8px',
+                                border: 'none',
+                                backgroundColor:
+                                    selectedProductIds.length === 0 || bulkUpdating ? '#e5e7eb' : '#111827',
+                                color:
+                                    selectedProductIds.length === 0 || bulkUpdating ? '#9ca3af' : '#ffffff',
+                                fontSize: '12px',
+                                fontWeight: 600,
+                                cursor:
+                                    selectedProductIds.length === 0 || bulkUpdating ? 'not-allowed' : 'pointer',
+                            }}
+                        >
+                            {bulkUpdating ? 'Updating...' : 'Apply'}
+                        </button>
+                    </div>
+                </div>
             </div>
 
             {error && <div style={{ color: '#dc2626', marginBottom: '20px' }}>{error}</div>}
@@ -162,61 +407,86 @@ const ProductList = () => {
                 <table style={styles.table}>
                     <thead>
                         <tr>
+                            <th style={styles.th}>
+                                <input
+                                    type="checkbox"
+                                    checked={products.length > 0 && selectedProductIds.length === products.length}
+                                    onChange={toggleSelectAll}
+                                />
+                            </th>
                             <th style={styles.th}>Product</th>
                             <th style={styles.th}>Category</th>
                             <th style={styles.th}>Status</th>
                             <th style={styles.th}>Price</th>
                             <th style={styles.th}>Stock</th>
+                            <th style={styles.th}>Active</th>
                             <th style={styles.th}>Actions</th>
                         </tr>
                     </thead>
                     <tbody>
-                        {products.map((product) => (
-                            <tr key={product._id} style={{ transition: 'background 0.2s' }}>
-                                <td style={styles.td}>
-                                    <div style={styles.productCell}>
-                                        <img src={product.images[0]} alt="" style={styles.productImg} />
-                                        <div>
-                                            <div style={{ fontWeight: '700', color: '#1a1a1a' }}>{product.name}</div>
-                                            <div style={{ fontSize: '12px', color: '#999', marginTop: '2px' }}>ID: {product._id.slice(-8)}</div>
+                        {products.map((product) => {
+                            const isSelected = selectedProductIds.includes(product._id);
+                            return (
+                                <tr key={product._id} style={{ transition: 'background 0.2s', backgroundColor: isSelected ? '#f9fafb' : 'transparent' }}>
+                                    <td style={styles.td}>
+                                        <input
+                                            type="checkbox"
+                                            checked={isSelected}
+                                            onChange={() => toggleSelectProduct(product._id)}
+                                        />
+                                    </td>
+                                    <td style={styles.td}>
+                                        <div style={styles.productCell}>
+                                            <img src={product.images[0]} alt="" style={styles.productImg} />
+                                            <div>
+                                                <div style={{ fontWeight: '700', color: '#1a1a1a' }}>{product.name}</div>
+                                                <div style={{ fontSize: '12px', color: '#999', marginTop: '2px' }}>ID: {product._id.slice(-8)}</div>
+                                            </div>
                                         </div>
-                                    </div>
-                                </td>
-                                <td style={styles.td}>
-                                    <span style={{ color: '#666' }}>{product.category}</span>
-                                    <div style={{ fontSize: '11px', color: '#999' }}>{product.subCategory}</div>
-                                </td>
-                                <td style={styles.td}>
-                                    {product.onSale ? (
-                                        <span style={{ ...styles.badge, backgroundColor: '#fff7ed', color: '#ea580c' }}>On Sale</span>
-                                    ) : (
-                                        <span style={{ ...styles.badge, backgroundColor: '#f0fdf4', color: '#16a34a' }}>Standard</span>
-                                    )}
-                                </td>
-                                <td style={styles.td}>
-                                    <span style={{ fontWeight: '700' }}>KSh {product.price.toLocaleString()}</span>
-                                </td>
-                                <td style={styles.td}>
-                                    <div style={{
-                                        color: product.stock > 10 ? '#333' : '#dc2626',
-                                        fontWeight: product.stock <= 5 ? '700' : '400'
-                                    }}>
-                                        {product.stock} pcs
-                                    </div>
-                                </td>
-                                <td style={styles.td}>
-                                    <Link to={`/admin/product/${product._id}/edit`} style={{ ...styles.actionBtn, textDecoration: 'none' }}>
-                                        <i className="fas fa-edit" style={{ color: '#3b82f6' }}></i>
-                                    </Link>
-                                    <button
-                                        onClick={() => deleteHandler(product._id)}
-                                        style={{ ...styles.actionBtn, color: '#dc2626' }}
-                                    >
-                                        <i className="fas fa-trash"></i>
-                                    </button>
-                                </td>
-                            </tr>
-                        ))}
+                                    </td>
+                                    <td style={styles.td}>
+                                        <span style={{ color: '#666' }}>{product.category}</span>
+                                        <div style={{ fontSize: '11px', color: '#999' }}>{product.subCategory}</div>
+                                    </td>
+                                    <td style={styles.td}>
+                                        {product.onSale ? (
+                                            <span style={{ ...styles.badge, backgroundColor: '#fff7ed', color: '#ea580c' }}>On Sale</span>
+                                        ) : (
+                                            <span style={{ ...styles.badge, backgroundColor: '#f0fdf4', color: '#16a34a' }}>Standard</span>
+                                        )}
+                                    </td>
+                                    <td style={styles.td}>
+                                        <span style={{ fontWeight: '700' }}>KSh {product.price.toLocaleString()}</span>
+                                    </td>
+                                    <td style={styles.td}>
+                                        <div style={{
+                                            color: product.stock > 10 ? '#333' : '#dc2626',
+                                            fontWeight: product.stock <= 5 ? '700' : '400'
+                                        }}>
+                                            {product.stock} pcs
+                                        </div>
+                                    </td>
+                                    <td style={styles.td}>
+                                        {product.isActive !== false ? (
+                                            <span style={{ ...styles.badge, backgroundColor: '#ecfdf5', color: '#16a34a' }}>Active</span>
+                                        ) : (
+                                            <span style={{ ...styles.badge, backgroundColor: '#f3f4f6', color: '#4b5563' }}>Hidden</span>
+                                        )}
+                                    </td>
+                                    <td style={styles.td}>
+                                        <Link to={`/admin/product/${product._id}/edit`} style={{ ...styles.actionBtn, textDecoration: 'none' }}>
+                                            <i className="fas fa-edit" style={{ color: '#3b82f6' }}></i>
+                                        </Link>
+                                        <button
+                                            onClick={() => deleteHandler(product._id)}
+                                            style={{ ...styles.actionBtn, color: '#dc2626' }}
+                                        >
+                                            <i className="fas fa-trash"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                            );
+                        })}
                     </tbody>
                 </table>
             </div>

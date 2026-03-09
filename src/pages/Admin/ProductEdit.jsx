@@ -36,8 +36,12 @@ const ProductEdit = () => {
     const [description, setDescription] = useState('');
     const [onSale, setOnSale] = useState(false);
     const [isFeatured, setIsFeatured] = useState(false);
+    const [isActive, setIsActive] = useState(true);
     const [keyFeatures, setKeyFeatures] = useState([]);
     const [specs, setSpecs] = useState([]);
+    const [metaTitle, setMetaTitle] = useState('');
+    const [metaDescription, setMetaDescription] = useState('');
+    const [slugOverride, setSlugOverride] = useState('');
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
     const [uploading, setUploading] = useState(false);
@@ -81,6 +85,14 @@ const ProductEdit = () => {
                 setIsFeatured(Boolean(product.isFeatured));
                 setKeyFeatures(product.keyFeatures || []);
                 setSpecs(product.specs || []);
+                setIsActive(
+                    product.isActive === undefined || product.isActive === null
+                        ? true
+                        : Boolean(product.isActive)
+                );
+                setMetaTitle(product.metaTitle || '');
+                setMetaDescription(product.metaDescription || '');
+                setSlugOverride(product.slug || '');
             } catch (err) {
                 setError('Failed to fetch product');
             } finally {
@@ -160,6 +172,18 @@ const ProductEdit = () => {
         setImage('');
     };
 
+    const moveImage = (index, direction) => {
+        setImages((prev) => {
+            const next = [...prev];
+            const newIndex = index + direction;
+            if (newIndex < 0 || newIndex >= next.length) return prev;
+            const temp = next[index];
+            next[index] = next[newIndex];
+            next[newIndex] = temp;
+            return next;
+        });
+    };
+
     const execDescriptionCommand = (command, value = null) => {
         if (!descriptionEditorRef.current) return;
         descriptionEditorRef.current.focus();
@@ -177,7 +201,11 @@ const ProductEdit = () => {
         setLoading(true);
         setError('');
 
-        const slug = name.toLowerCase().replace(/ /g, '-').replace(/[^\w-]+/g, '');
+        const slugSource = slugOverride && slugOverride.trim().length > 0 ? slugOverride : name;
+        const slug = slugSource
+            .toLowerCase()
+            .replace(/ /g, '-')
+            .replace(/[^\w-]+/g, '');
 
         const productData = {
             name,
@@ -199,8 +227,11 @@ const ProductEdit = () => {
             description,
             onSale,
             isFeatured,
+            isActive,
             keyFeatures,
-            specs
+            specs,
+            metaTitle,
+            metaDescription,
         };
 
         try {
@@ -311,10 +342,36 @@ const ProductEdit = () => {
                 {/* Basic Info Section */}
                 <div style={{ marginBottom: '40px' }}>
                     <h2 style={styles.sectionTitle}><i className="fas fa-info-circle" style={{ color: '#E41E26' }}></i> Basic Information</h2>
-                    <div style={{ marginBottom: '24px' }}>
-                        <label style={styles.label}>Product Name</label>
-                        <input type="text" value={name} onChange={(e) => setName(e.target.value)} required placeholder="e.g. Anker Soundcore Liberty 5..." style={styles.input} />
+                <div style={{ marginBottom: '24px' }}>
+                    <label style={styles.label}>Product Name</label>
+                    <input type="text" value={name} onChange={(e) => setName(e.target.value)} required placeholder="e.g. Anker Soundcore Liberty 5..." style={styles.input} />
+                </div>
+
+                <div style={styles.row}>
+                    <div>
+                        <label style={styles.label}>URL Slug (optional override)</label>
+                        <input
+                            type="text"
+                            value={slugOverride}
+                            onChange={(e) => setSlugOverride(e.target.value)}
+                            placeholder="e.g. anker-soundcore-liberty-5-white"
+                            style={styles.input}
+                        />
+                        <div style={{ marginTop: '6px', fontSize: '12px', color: '#6b7280' }}>
+                            If left empty, the slug will be generated from the product name.
+                        </div>
                     </div>
+                    <div>
+                        <label style={styles.label}>SEO Title (optional)</label>
+                        <input
+                            type="text"
+                            value={metaTitle}
+                            onChange={(e) => setMetaTitle(e.target.value)}
+                            placeholder="Browser tab / search title"
+                            style={styles.input}
+                        />
+                    </div>
+                </div>
 
                     <div style={styles.row}>
                         <div>
@@ -403,7 +460,7 @@ const ProductEdit = () => {
                 {/* Inventory & Status */}
                 <div style={{ marginBottom: '40px' }}>
                     <h2 style={styles.sectionTitle}><i className="fas fa-warehouse" style={{ color: '#E41E26' }}></i> Inventory & Status</h2>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '24px' }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: '24px' }}>
                         <div>
                             <label style={styles.label}>Stock Quantity</label>
                             <input type="number" value={stock} onChange={(e) => setStock(Number(e.target.value))} required style={styles.input} />
@@ -415,6 +472,16 @@ const ProductEdit = () => {
                         <div style={{ display: 'flex', alignItems: 'center', gap: '12px', paddingTop: '30px' }}>
                             <input type="checkbox" id="isFeatured" checked={isFeatured} onChange={(e) => setIsFeatured(e.target.checked)} style={{ width: '20px', height: '20px', cursor: 'pointer' }} />
                             <label htmlFor="isFeatured" style={{ fontWeight: '600', cursor: 'pointer', fontSize: '14px' }}>Featured Product</label>
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', paddingTop: '30px' }}>
+                            <input
+                                type="checkbox"
+                                id="isActive"
+                                checked={isActive}
+                                onChange={(e) => setIsActive(e.target.checked)}
+                                style={{ width: '20px', height: '20px', cursor: 'pointer' }}
+                            />
+                            <label htmlFor="isActive" style={{ fontWeight: '600', cursor: 'pointer', fontSize: '14px' }}>Active (visible)</label>
                         </div>
                     </div>
                 </div>
@@ -498,26 +565,55 @@ const ProductEdit = () => {
                     {images.length > 0 && (
                         <div style={{ display: 'flex', gap: '15px', flexWrap: 'wrap', backgroundColor: '#f9f9f9', padding: '20px', borderRadius: '12px' }}>
                             {images.map((img, i) => (
-                                <div key={i} style={{ position: 'relative', width: '80px', height: '80px', borderRadius: '10px', overflow: 'hidden', border: '1px solid #ddd' }}>
-                                    <img src={img} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                                    <button type="button" onClick={() => setImages(images.filter((_, idx) => idx !== i))} style={{
-                                        position: 'absolute',
-                                        top: '5px',
-                                        right: '5px',
-                                        border: 'none',
-                                        background: 'rgba(228, 30, 38, 0.9)',
-                                        color: 'white',
-                                        borderRadius: '50%',
-                                        width: '20px',
-                                        height: '20px',
-                                        fontSize: '10px',
-                                        cursor: 'pointer',
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        justifyContent: 'center'
-                                    }}>
-                                        <i className="fas fa-times"></i>
-                                    </button>
+                                <div key={i} style={{ position: 'relative', width: '90px', borderRadius: '10px', overflow: 'hidden', border: '1px solid #ddd', backgroundColor: '#fff' }}>
+                                    <img src={img} alt="" style={{ width: '100%', height: '70px', objectFit: 'cover' }} />
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', padding: '4px 6px', backgroundColor: '#f9fafb', borderTop: '1px solid #e5e7eb' }}>
+                                        <div style={{ display: 'flex', gap: '4px' }}>
+                                            <button
+                                                type="button"
+                                                onClick={() => moveImage(i, -1)}
+                                                disabled={i === 0}
+                                                title="Move up"
+                                                style={{
+                                                    border: 'none',
+                                                    background: 'transparent',
+                                                    cursor: i === 0 ? 'default' : 'pointer',
+                                                    color: i === 0 ? '#d1d5db' : '#6b7280',
+                                                    fontSize: '11px',
+                                                }}
+                                            >
+                                                ↑
+                                            </button>
+                                            <button
+                                                type="button"
+                                                onClick={() => moveImage(i, 1)}
+                                                disabled={i === images.length - 1}
+                                                title="Move down"
+                                                style={{
+                                                    border: 'none',
+                                                    background: 'transparent',
+                                                    cursor: i === images.length - 1 ? 'default' : 'pointer',
+                                                    color: i === images.length - 1 ? '#d1d5db' : '#6b7280',
+                                                    fontSize: '11px',
+                                                }}
+                                            >
+                                                ↓
+                                            </button>
+                                        </div>
+                                        <button
+                                            type="button"
+                                            onClick={() => setImages(images.filter((_, idx) => idx !== i))}
+                                            style={{
+                                                border: 'none',
+                                                background: 'transparent',
+                                                color: '#dc2626',
+                                                cursor: 'pointer',
+                                                fontSize: '11px',
+                                            }}
+                                        >
+                                            Remove
+                                        </button>
+                                    </div>
                                 </div>
                             ))}
                         </div>
@@ -580,6 +676,20 @@ const ProductEdit = () => {
                 </div>
 
                 {/* Specs Section */}
+                {/* SEO meta description */}
+                <div style={{ marginBottom: '40px' }}>
+                    <h2 style={styles.sectionTitle}><i className="fas fa-search" style={{ color: '#E41E26' }}></i> SEO Description</h2>
+                    <textarea
+                        value={metaDescription}
+                        onChange={(e) => setMetaDescription(e.target.value)}
+                        placeholder="Short description for search engines and link previews."
+                        style={{
+                            ...styles.input,
+                            minHeight: '90px',
+                            resize: 'vertical',
+                        }}
+                    />
+                </div>
                 <div style={{ marginBottom: '40px' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
                         <h2 style={{ ...styles.sectionTitle, margin: 0 }}><i className="fas fa-list-ul" style={{ color: '#E41E26' }}></i> Technical Specs</h2>

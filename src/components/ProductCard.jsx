@@ -1,6 +1,5 @@
 import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { useCart } from '../context/CartContext';
 import { useFavorites } from '../context/FavoritesContext';
 import { useAuth } from '../context/AuthContext';
 
@@ -22,7 +21,6 @@ const highlightText = (text, query) => {
 };
 
 const ProductCard = ({ product, highlightQuery }) => {
-    const { addToCart } = useCart();
     const { favourites, isFavourite, toggleFavourite } = useFavorites();
     const { user } = useAuth();
     const navigate = useNavigate();
@@ -35,16 +33,6 @@ const ProductCard = ({ product, highlightQuery }) => {
         (Array.isArray(product.images) && product.images.length > 0 && product.images[0]) ||
         product.image ||
         fallbackImage;
-
-    const handleAddToCart = (e) => {
-        e.preventDefault();
-        console.log('ProductCard: handleAddToCart clicked', product.name);
-        if (product.stock > 0) {
-            addToCart(product);
-        } else {
-            console.log('ProductCard: Stock is 0');
-        }
-    };
 
     const handleToggleFavourite = (e) => {
         e.preventDefault();
@@ -81,6 +69,9 @@ const ProductCard = ({ product, highlightQuery }) => {
                             <i className={isFavourite(product._id) ? 'fas fa-heart' : 'far fa-heart'}></i>
                         </button>
                     </div>
+                    <div className="product-readmore">
+                        <span>Read more</span>
+                    </div>
                 </div>
             </Link>
             <div className="product-info">
@@ -97,25 +88,22 @@ const ProductCard = ({ product, highlightQuery }) => {
                         {highlightText(product.name, highlightQuery)}
                     </h3>
                 </Link>
-                <div className="product-price">
-                    {product.originalPrice && <span className="original-price">Ksh {product.originalPrice.toLocaleString()}</span>}
-                    <span className="current-price">Ksh {product.price.toLocaleString()}</span>
-                </div>
-                <div className="card-footer">
-                    <button
-                        className="add-to-cart-btn-v2"
-                        onClick={handleAddToCart}
-                        disabled={product.stock <= 0}
-                    >
-                        {product.stock > 0 ? (
-                            <>
-                                <i className="fas fa-shopping-cart" style={{ fontSize: 14 }}></i>
-                                <span>Add to cart</span>
-                            </>
-                        ) : (
-                            <span>Out of stock</span>
-                        )}
-                    </button>
+                <div className="product-footer-animated">
+                    <div className="product-footer-layer product-footer-price">
+                        <div className="product-price">
+                            {product.originalPrice && (
+                                <span className="original-price">
+                                    Ksh {product.originalPrice.toLocaleString()}
+                                </span>
+                            )}
+                            <span className="current-price">
+                                Ksh {product.price.toLocaleString()}
+                            </span>
+                        </div>
+                    </div>
+                    <div className="product-footer-layer product-footer-readmore">
+                        <span className="product-readmore-pill">Read more</span>
+                    </div>
                 </div>
             </div>
         </div>

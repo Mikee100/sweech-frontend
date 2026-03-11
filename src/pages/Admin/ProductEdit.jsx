@@ -196,6 +196,16 @@ const ProductEdit = () => {
         setDescription(descriptionEditorRef.current.innerHTML);
     };
 
+    const insertDescriptionTemplate = (html) => {
+        if (!descriptionEditorRef.current) {
+            setDescription((prev) => `${prev}${html}`);
+            return;
+        }
+        descriptionEditorRef.current.focus();
+        document.execCommand('insertHTML', false, html);
+        setDescription(descriptionEditorRef.current.innerHTML);
+    };
+
     const submitHandler = async (e) => {
         e.preventDefault();
         setLoading(true);
@@ -244,8 +254,8 @@ const ProductEdit = () => {
                 method,
                 headers: {
                     'Content-Type': 'application/json',
-                    Authorization: `Bearer ${user.token}`
                 },
+                credentials: 'include',
                 body: JSON.stringify(productData)
             });
 
@@ -361,16 +371,18 @@ const ProductEdit = () => {
                             If left empty, the slug will be generated from the product name.
                         </div>
                     </div>
-                    <div>
-                        <label style={styles.label}>SEO Title (optional)</label>
-                        <input
-                            type="text"
-                            value={metaTitle}
-                            onChange={(e) => setMetaTitle(e.target.value)}
-                            placeholder="Browser tab / search title"
-                            style={styles.input}
-                        />
-                    </div>
+                    {isEditMode && (
+                        <div>
+                            <label style={styles.label}>SEO Title (optional)</label>
+                            <input
+                                type="text"
+                                value={metaTitle}
+                                onChange={(e) => setMetaTitle(e.target.value)}
+                                placeholder="Browser tab / search title"
+                                style={styles.input}
+                            />
+                        </div>
+                    )}
                 </div>
 
                     <div style={styles.row}>
@@ -486,20 +498,22 @@ const ProductEdit = () => {
                     </div>
                 </div>
 
-                {/* Hero text */}
-                <div style={{ marginBottom: '40px' }}>
-                    <h2 style={styles.sectionTitle}><i className="fas fa-bullhorn" style={{ color: '#E41E26' }}></i> Hero Banner Text</h2>
-                    <div style={styles.row}>
-                        <div>
-                            <label style={styles.label}>Hero Headline</label>
-                            <input type="text" value={featureHeadline} onChange={(e) => setFeatureHeadline(e.target.value)} placeholder="e.g. 67% Faster Recharging" style={styles.input} />
-                        </div>
-                        <div>
-                            <label style={styles.label}>Hero Subtext</label>
-                            <input type="text" value={featureSubtext} onChange={(e) => setFeatureSubtext(e.target.value)} placeholder="e.g. 30W Max Input" style={styles.input} />
+                {/* Hero text (only for editing, hidden on create to keep it simple) */}
+                {isEditMode && (
+                    <div style={{ marginBottom: '40px' }}>
+                        <h2 style={styles.sectionTitle}><i className="fas fa-bullhorn" style={{ color: '#E41E26' }}></i> Hero Banner Text</h2>
+                        <div style={styles.row}>
+                            <div>
+                                <label style={styles.label}>Hero Headline</label>
+                                <input type="text" value={featureHeadline} onChange={(e) => setFeatureHeadline(e.target.value)} placeholder="e.g. 67% Faster Recharging" style={styles.input} />
+                            </div>
+                            <div>
+                                <label style={styles.label}>Hero Subtext</label>
+                                <input type="text" value={featureSubtext} onChange={(e) => setFeatureSubtext(e.target.value)} placeholder="e.g. 30W Max Input" style={styles.input} />
+                            </div>
                         </div>
                     </div>
-                </div>
+                )}
 
                 {/* Notes */}
                 <div style={{ marginBottom: '40px' }}>
@@ -624,12 +638,36 @@ const ProductEdit = () => {
                 <div style={{ marginBottom: '40px' }}>
                     <h2 style={styles.sectionTitle}><i className="fas fa-align-left" style={{ color: '#E41E26' }}></i> Description</h2>
                     <div style={{ marginBottom: '10px', display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                        <button type="button" onClick={() => execDescriptionCommand('undo')} style={{ padding: '6px 10px', fontSize: '12px', borderRadius: '6px', border: '1px solid #e5e7eb', background: '#f9fafb', cursor: 'pointer' }}>↺</button>
+                        <button type="button" onClick={() => execDescriptionCommand('redo')} style={{ padding: '6px 10px', fontSize: '12px', borderRadius: '6px', border: '1px solid #e5e7eb', background: '#f9fafb', cursor: 'pointer' }}>↻</button>
+                        <span style={{ width: '1px', height: '24px', backgroundColor: '#e5e7eb', margin: '0 4px' }} />
                         <button type="button" onClick={() => execDescriptionCommand('bold')} style={{ padding: '6px 10px', fontSize: '12px', borderRadius: '6px', border: '1px solid #e5e7eb', background: '#f9fafb', cursor: 'pointer', fontWeight: '700' }}>B</button>
                         <button type="button" onClick={() => execDescriptionCommand('italic')} style={{ padding: '6px 10px', fontSize: '12px', borderRadius: '6px', border: '1px solid #e5e7eb', background: '#f9fafb', cursor: 'pointer', fontStyle: 'italic' }}>I</button>
+                        <button type="button" onClick={() => execDescriptionCommand('underline')} style={{ padding: '6px 10px', fontSize: '12px', borderRadius: '6px', border: '1px solid #e5e7eb', background: '#f9fafb', cursor: 'pointer', textDecoration: 'underline' }}>U</button>
+                        <span style={{ width: '1px', height: '24px', backgroundColor: '#e5e7eb', margin: '0 4px' }} />
                         <button type="button" onClick={() => execDescriptionCommand('insertUnorderedList')} style={{ padding: '6px 10px', fontSize: '12px', borderRadius: '6px', border: '1px solid #e5e7eb', background: '#f9fafb', cursor: 'pointer' }}>• List</button>
                         <button type="button" onClick={() => execDescriptionCommand('insertOrderedList')} style={{ padding: '6px 10px', fontSize: '12px', borderRadius: '6px', border: '1px solid #e5e7eb', background: '#f9fafb', cursor: 'pointer' }}>1. List</button>
-                        <button type="button" onClick={() => execDescriptionCommand('formatBlock', 'H4')} style={{ padding: '6px 10px', fontSize: '12px', borderRadius: '6px', border: '1px solid #e5e7eb', background: '#f9fafb', cursor: 'pointer', fontWeight: '600' }}>H</button>
+                        <span style={{ width: '1px', height: '24px', backgroundColor: '#e5e7eb', margin: '0 4px' }} />
+                        <button type="button" onClick={() => execDescriptionCommand('formatBlock', 'H3')} style={{ padding: '6px 10px', fontSize: '12px', borderRadius: '6px', border: '1px solid #e5e7eb', background: '#f9fafb', cursor: 'pointer', fontWeight: '600' }}>H3</button>
+                        <button type="button" onClick={() => execDescriptionCommand('formatBlock', 'H4')} style={{ padding: '6px 10px', fontSize: '12px', borderRadius: '6px', border: '1px solid #e5e7eb', background: '#f9fafb', cursor: 'pointer', fontWeight: '600' }}>H4</button>
                         <button type="button" onClick={() => execDescriptionCommand('formatBlock', 'BLOCKQUOTE')} style={{ padding: '6px 10px', fontSize: '12px', borderRadius: '6px', border: '1px solid #e5e7eb', background: '#f9fafb', cursor: 'pointer' }}>&ldquo; Quote</button>
+                        <span style={{ width: '1px', height: '24px', backgroundColor: '#e5e7eb', margin: '0 4px' }} />
+                        <button type="button" onClick={() => execDescriptionCommand('justifyLeft')} style={{ padding: '6px 10px', fontSize: '12px', borderRadius: '6px', border: '1px solid #e5e7eb', background: '#f9fafb', cursor: 'pointer' }}>⟸</button>
+                        <button type="button" onClick={() => execDescriptionCommand('justifyCenter')} style={{ padding: '6px 10px', fontSize: '12px', borderRadius: '6px', border: '1px solid #e5e7eb', background: '#f9fafb', cursor: 'pointer' }}>⇔</button>
+                        <button type="button" onClick={() => execDescriptionCommand('justifyRight')} style={{ padding: '6px 10px', fontSize: '12px', borderRadius: '6px', border: '1px solid #e5e7eb', background: '#f9fafb', cursor: 'pointer' }}>⟹</button>
+                        <span style={{ width: '1px', height: '24px', backgroundColor: '#e5e7eb', margin: '0 4px' }} />
+                        <button
+                            type="button"
+                            onClick={() => {
+                                const url = window.prompt('Link URL');
+                                if (url) {
+                                    execDescriptionCommand('createLink', url);
+                                }
+                            }}
+                            style={{ padding: '6px 10px', fontSize: '12px', borderRadius: '6px', border: '1px solid #e5e7eb', background: '#f9fafb', cursor: 'pointer' }}
+                        >
+                            Link
+                        </button>
                         <button
                             type="button"
                             onClick={() => {
@@ -642,7 +680,47 @@ const ProductEdit = () => {
                         >
                             Img
                         </button>
+                        <button type="button" onClick={() => execDescriptionCommand('insertHorizontalRule')} style={{ padding: '6px 10px', fontSize: '12px', borderRadius: '6px', border: '1px solid #e5e7eb', background: '#f9fafb', cursor: 'pointer' }}>─</button>
                         <button type="button" onClick={() => execDescriptionCommand('removeFormat')} style={{ padding: '6px 10px', fontSize: '12px', borderRadius: '6px', border: '1px solid #fee2e2', background: '#fef2f2', cursor: 'pointer', color: '#b91c1c' }}>Clear</button>
+                    </div>
+                    <div style={{ marginBottom: '10px', display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                        <span style={{ fontSize: '12px', color: '#6b7280', marginRight: '8px' }}>Quick sections:</span>
+                        <button
+                            type="button"
+                            onClick={() =>
+                                insertDescriptionTemplate('<h4>Overview</h4><p>Short overview of what this product does and who it is for.</p>')
+                            }
+                            style={{ padding: '4px 10px', fontSize: '11px', borderRadius: '999px', border: '1px solid #e5e7eb', background: '#f9fafb', cursor: 'pointer' }}
+                        >
+                            + Overview
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() =>
+                                insertDescriptionTemplate('<h4>What&apos;s in the box</h4><ul><li>Main item</li><li>Accessories</li><li>Documentation</li></ul>')
+                            }
+                            style={{ padding: '4px 10px', fontSize: '11px', borderRadius: '999px', border: '1px solid #e5e7eb', background: '#f9fafb', cursor: 'pointer' }}
+                        >
+                            + What&apos;s in the box
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() =>
+                                insertDescriptionTemplate('<h4>Why you&apos;ll love it</h4><ul><li>Benefit one</li><li>Benefit two</li><li>Benefit three</li></ul>')
+                            }
+                            style={{ padding: '4px 10px', fontSize: '11px', borderRadius: '999px', border: '1px solid #e5e7eb', background: '#f9fafb', cursor: 'pointer' }}
+                        >
+                            + Why you&apos;ll love it
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() =>
+                                insertDescriptionTemplate('<h4>From the manufacturer</h4><p>Brand story, design notes, or extra context from the manufacturer.</p>')
+                            }
+                            style={{ padding: '4px 10px', fontSize: '11px', borderRadius: '999px', border: '1px solid #e5e7eb', background: '#f9fafb', cursor: 'pointer' }}
+                        >
+                            + From the manufacturer
+                        </button>
                     </div>
                     <div
                         ref={descriptionEditorRef}
@@ -676,20 +754,22 @@ const ProductEdit = () => {
                 </div>
 
                 {/* Specs Section */}
-                {/* SEO meta description */}
-                <div style={{ marginBottom: '40px' }}>
-                    <h2 style={styles.sectionTitle}><i className="fas fa-search" style={{ color: '#E41E26' }}></i> SEO Description</h2>
-                    <textarea
-                        value={metaDescription}
-                        onChange={(e) => setMetaDescription(e.target.value)}
-                        placeholder="Short description for search engines and link previews."
-                        style={{
-                            ...styles.input,
-                            minHeight: '90px',
-                            resize: 'vertical',
-                        }}
-                    />
-                </div>
+                {/* SEO meta description (only for editing, hidden on create) */}
+                {isEditMode && (
+                    <div style={{ marginBottom: '40px' }}>
+                        <h2 style={styles.sectionTitle}><i className="fas fa-search" style={{ color: '#E41E26' }}></i> SEO Description</h2>
+                        <textarea
+                            value={metaDescription}
+                            onChange={(e) => setMetaDescription(e.target.value)}
+                            placeholder="Short description for search engines and link previews."
+                            style={{
+                                ...styles.input,
+                                minHeight: '90px',
+                                resize: 'vertical',
+                            }}
+                        />
+                    </div>
+                )}
                 <div style={{ marginBottom: '40px' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
                         <h2 style={{ ...styles.sectionTitle, margin: 0 }}><i className="fas fa-list-ul" style={{ color: '#E41E26' }}></i> Technical Specs</h2>

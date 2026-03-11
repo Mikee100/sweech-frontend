@@ -1,83 +1,113 @@
-import React, { createContext, useContext, useState } from 'react';
+import React, { createContext, useContext, useEffect, useState } from 'react';
+import { apiFetch, ApiError } from '../utils/apiClient';
 
 const AuthContext = createContext();
 
 export const useAuth = () => useContext(AuthContext);
 
 export const AuthProvider = ({ children }) => {
-    const [user, setUser] = useState(() => {
-        const localUser = localStorage.getItem('userInfo');
-        return localUser ? JSON.parse(localUser) : null;
-    });
+    const [user, setUser] = useState(null);
+    const [initializing, setInitializing] = useState(true);
+
+    // On app load, hydrate user from server using cookie-based auth
+    useEffect(() => {
+        const loadProfile = async () => {
+            try {
+                const data = await apiFetch(`${import.meta.env.VITE_API_URL}/api/users/profile`);
+                setUser(data);
+            } catch (err) {
+                // Not logged in or profile fetch failed; start with no user
+                setUser(null);
+            } finally {
+                setInitializing(false);
+            }
+        };
+
+        loadProfile();
+    }, []);
 
     const login = async (email, password) => {
-        const response = await fetch(`${import.meta.env.VITE_API_URL}/api/users/login`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ email, password }),
-        });
+        try {
+            const data = await apiFetch(`${import.meta.env.VITE_API_URL}/api/users/login`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email, password }),
+            });
 
-        const data = await response.json();
-
-        if (response.ok) {
             setUser(data);
-            localStorage.setItem('userInfo', JSON.stringify(data));
             return data;
-        } else {
-            throw new Error(data.message || 'Login failed');
+        } catch (err) {
+            if (err instanceof ApiError) {
+                throw new Error(err.message || 'Login failed');
+            }
+            throw new Error('Login failed. Please check your details and try again.');
         }
     };
 
-    const register = async (name, email, password) => {
-        const response = await fetch(`${import.meta.env.VITE_API_URL}/api/users`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ name, email, password }),
-        });
+    const register = async ({ name, email, password, phone, city, address, newsletterOptIn }) => {
+        try {
+            const data = await apiFetch(`${import.meta.env.VITE_API_URL}/api/users`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    name,
+                    email,
+                    password,
+                    phone,
+                    city,
+                    address,
+                    newsletterOptIn,
+                }),
+            });
 
-        const data = await response.json();
-
-        if (response.ok) {
             setUser(data);
-            localStorage.setItem('userInfo', JSON.stringify(data));
             return data;
-        } else {
-            throw new Error(data.message || 'Registration failed');
+        } catch (err) {
+            if (err instanceof ApiError) {
+                throw new Error(err.message || 'Registration failed');
+            }
+            throw new Error('Registration failed. Please check your details and try again.');
         }
     };
 
-    const logout = () => {
-        setUser(null);
-        localStorage.removeItem('userInfo');
+    const logout = async () => {
+        try {
+            await apiFetch(`${import.meta.env.VITE_API_URL}/api/users/logout`, {
+                method: 'POST',
+            });
+        } catch {
+            // Ignore logout failures on client
+        } finally {
+            setUser(null);
+        }
     };
 
     const updateProfile = async (updates) => {
-        if (!user || !user.token) {
+        if (!user) {
             throw new Error('Not authenticated');
         }
 
-        const response = await fetch(`${import.meta.env.VITE_API_URL}/api/users/profile`, {
-            method: 'PUT',
-            headers: {
-                'Content-Type': 'application/json',
-                Authorization: `Bearer ${user.token}`,
-            },
-            body: JSON.stringify(updates),
-        });
+        try {
+            const data = await apiFetch(`${import.meta.env.VITE_API_URL}/api/users/profile`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(updates),
+            });
 
-        const data = await response.json();
-
-        if (response.ok) {
             setUser(data);
-            localStorage.setItem('userInfo', JSON.stringify(data));
             return data;
-        } else {
-            throw new Error(data.message || 'Failed to update profile');
+        } catch (err) {
+            if (err instanceof ApiError) {
+                throw new Error(err.message || 'Failed to update profile');
+            }
+            throw new Error('Failed to update profile. Please try again.');
         }
     };
 
     return (
-        <AuthContext.Provider value={{ user, login, register, logout, updateProfile }}>
+        <AuthContext.Provider value={{ user, initializing, login, register, logout, updateProfile }}>
             {children}
         </AuthContext.Provider>
     );

@@ -4,6 +4,8 @@ import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
 import { SHIPPING_ZONES } from '../constants/shippingZones';
 import { useSiteConfig } from '../context/SiteConfigContext';
+import { apiFetch, ApiError } from '../utils/apiClient';
+import ErrorBanner from '../components/ErrorBanner';
 
 const Checkout = () => {
     const { cart, cartTotal, clearCart } = useCart();
@@ -11,6 +13,8 @@ const Checkout = () => {
     const { config } = useSiteConfig();
     const navigate = useNavigate();
 
+    const [fullName, setFullName] = useState('');
+    const [phone, setPhone] = useState('');
     const [address, setAddress] = useState('');
     const [city, setCity] = useState('');
     const [postalCode, setPostalCode] = useState('');
@@ -19,6 +23,7 @@ const Checkout = () => {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
     const [success, setSuccess] = useState('');
+    const [termsAccepted, setTermsAccepted] = useState(false);
 
     const [selectedZoneId] = useState(() => {
         const stored = localStorage.getItem('shippingZoneId');
@@ -54,9 +59,31 @@ const Checkout = () => {
         setError('');
         setSuccess('');
 
-        // Frontend validation to ensure required shipping fields are filled
+        // Frontend validation to ensure required fields are filled
+        if (!fullName.trim()) {
+            const message = 'Please enter the recipient name.';
+            setError(message);
+            setLoading(false);
+            return;
+        }
+
+        const phoneNormalized = phone.replace(/\s+/g, '');
+        if (!phoneNormalized || phoneNormalized.length < 9) {
+            const message = 'Please enter a valid phone number for delivery updates.';
+            setError(message);
+            setLoading(false);
+            return;
+        }
+
         if (!address.trim() || !city.trim() || !postalCode.trim() || !country.trim()) {
             const message = 'Please fill in your full shipping address before placing the order.';
+            setError(message);
+            setLoading(false);
+            return;
+        }
+
+        if (!termsAccepted) {
+            const message = 'Please confirm that you agree to the terms before placing the order.';
             setError(message);
             setLoading(false);
             return;
@@ -70,7 +97,7 @@ const Checkout = () => {
                 price: item.price,
                 product: item._id
             })),
-            shippingAddress: { address, city, postalCode, country },
+            shippingAddress: { name: fullName, phone: phoneNormalized, address, city, postalCode, country },
             paymentMethod,
             itemsPrice: cartTotal,
             shippingPrice,
@@ -81,32 +108,32 @@ const Checkout = () => {
         };
 
         try {
-            const response = await fetch(`${import.meta.env.VITE_API_URL}/api/orders`, {
+            const data = await apiFetch(`${import.meta.env.VITE_API_URL}/api/orders`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${user.token}`
                 },
-                body: JSON.stringify(orderData)
+                body: JSON.stringify(orderData),
             });
 
-            const data = await response.json();
-
-            if (response.ok) {
-                clearCart();
-                const message = 'Order placed successfully! Redirecting to your order...';
-                setSuccess(message);
-                // Give the user a moment to see the success message before redirecting
-                setTimeout(() => {
-                    navigate(`/order/${data._id}`);
-                }, 1200);
-            } else {
-                const message = data.message || 'Failed to place order. Please review your details and try again.';
-                setError(message);
-            }
+            clearCart();
+            const message = 'Order placed successfully! Redirecting to your order...';
+            setSuccess(message);
+            setTimeout(() => {
+                navigate(`/order/${data._id}`);
+            }, 1200);
         } catch (err) {
-            const message = 'Something went wrong while placing your order. Please check your connection and try again.';
-            setError(message);
+            if (err instanceof ApiError) {
+                if (err.status === 401) {
+                    setError('Your session has expired. Please log in again to place your order.');
+                } else if (err.status === 400) {
+                    setError(err.message || 'Please review your details and try again.');
+                } else {
+                    setError(err.message);
+                }
+            } else {
+                setError('Something went wrong while placing your order. Please check your connection and try again.');
+            }
         } finally {
             setLoading(false);
         }
@@ -122,27 +149,26 @@ const Checkout = () => {
         setDiscountMessage('');
         setError('');
         try {
-            const response = await fetch(`${import.meta.env.VITE_API_URL}/api/discounts/apply`, {
+            const data = await apiFetch(`${import.meta.env.VITE_API_URL}/api/discounts/apply`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    Authorization: `Bearer ${user.token}`,
                 },
                 body: JSON.stringify({
                     code,
                     itemsTotal: cartTotal,
                 }),
             });
-            const data = await response.json();
-            if (!response.ok) {
-                throw new Error(data.message || 'Failed to apply discount code');
-            }
             setDiscountAmount(data.discountAmount || 0);
             setDiscountMessage(data.message || 'Discount code applied.');
         } catch (err) {
             setDiscountAmount(0);
             setDiscountMessage('');
-            setError(err.message || 'Failed to apply discount code.');
+            if (err instanceof ApiError) {
+                setError(err.message || 'Failed to apply discount code.');
+            } else {
+                setError('Failed to apply discount code. Please try again.');
+            }
         } finally {
             setApplyingDiscount(false);
         }
@@ -152,12 +178,23 @@ const Checkout = () => {
 
     return (
         <div className="checkout-page container" style={{ padding: '60px 0' }}>
-            <h1 style={{ marginBottom: '40px', fontSize: '32px', fontWeight: 'bold' }}>Checkout</h1>
+            <h1 style={{ marginBottom: '16px', fontSize: '32px', fontWeight: 'bold' }}>Checkout</h1>
+            <ErrorBanner message={error} onClose={() => setError('')} />
 
             <div className="checkout-layout">
                 <form onSubmit={handlePlaceOrder}>
                     <div style={{ backgroundColor: 'white', padding: '30px', borderRadius: '12px', boxShadow: '0 5px 15px rgba(0,0,0,0.05)', marginBottom: '30px' }}>
                         <h2 style={{ fontSize: '20px', marginBottom: '20px', borderBottom: '1px solid #eee', paddingBottom: '15px' }}>Shipping Information</h2>
+
+                        <div style={{ marginBottom: '20px' }}>
+                            <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: '600' }}>Full name</label>
+                            <input type="text" placeholder="Enter recipient name" value={fullName} onChange={(e) => setFullName(e.target.value)} required style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #ddd' }} />
+                        </div>
+
+                        <div style={{ marginBottom: '20px' }}>
+                            <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: '600' }}>Phone number</label>
+                            <input type="tel" placeholder="e.g. 07xx xxx xxx" value={phone} onChange={(e) => setPhone(e.target.value)} required style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #ddd' }} />
+                        </div>
 
                         <div style={{ marginBottom: '20px' }}>
                             <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: '600' }}>Address</label>
@@ -306,6 +343,19 @@ const Checkout = () => {
                                 {error}
                             </div>
                         )}
+
+                        <div style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', marginBottom: '14px', fontSize: '12px', color: '#374151' }}>
+                            <input
+                                type="checkbox"
+                                id="checkout-terms"
+                                checked={termsAccepted}
+                                onChange={(e) => setTermsAccepted(e.target.checked)}
+                                style={{ marginTop: '3px' }}
+                            />
+                            <label htmlFor="checkout-terms">
+                                I confirm that I have reviewed my order details, shipping information, and understand the store&apos;s delivery and returns policy.
+                            </label>
+                        </div>
 
                         <button
                             onClick={handlePlaceOrder}

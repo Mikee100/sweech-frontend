@@ -1,6 +1,23 @@
-import React from 'react';
+import React, { useState } from 'react';
 
 const Footer = () => {
+    const [email, setEmail] = useState('');
+    const [status, setStatus] = useState(null); // 'success' | 'error' | null
+
+    const handleSubmit = (e) => {
+        e.preventDefault();
+
+        if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+            setStatus('error');
+            return;
+        }
+
+        // TODO: Replace this with an actual API call to subscribe the user.
+        // For now, just simulate a successful subscription.
+        setStatus('success');
+        setEmail('');
+    };
+
     return (
         <footer className="footer">
             <div className="container">
@@ -36,10 +53,29 @@ const Footer = () => {
                     <div className="footer-col">
                         <h3>Newsletter</h3>
                         <p>Subscribe to get the latest tech deals and updates.</p>
-                        <div className="newsletter-form" style={{ marginTop: '20px' }}>
-                            <input type="email" placeholder="Email Address" style={{ padding: '12px', width: '100%', border: 'none', borderRadius: '4px', marginBottom: '10px' }} />
-                            <button className="btn-primary" style={{ width: '100%', padding: '10px' }}>SUBSCRIBE</button>
-                        </div>
+                        <form className="newsletter-form" style={{ marginTop: '20px' }} onSubmit={handleSubmit}>
+                            <input
+                                type="email"
+                                placeholder="Email Address"
+                                value={email}
+                                onChange={(e) => setEmail(e.target.value)}
+                                style={{ padding: '12px', width: '100%', border: 'none', borderRadius: '4px', marginBottom: '10px' }}
+                                required
+                            />
+                            <button type="submit" className="btn-primary" style={{ width: '100%', padding: '10px' }}>
+                                SUBSCRIBE
+                            </button>
+                            {status === 'success' && (
+                                <p style={{ color: '#4ade80', marginTop: '10px', fontSize: '0.9rem' }}>
+                                    You&apos;re subscribed! Check your inbox.
+                                </p>
+                            )}
+                            {status === 'error' && (
+                                <p style={{ color: '#f97373', marginTop: '10px', fontSize: '0.9rem' }}>
+                                    Please enter a valid email address.
+                                </p>
+                            )}
+                        </form>
                     </div>
                 </div>
                 <div className="footer-bottom">

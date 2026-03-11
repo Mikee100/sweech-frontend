@@ -38,9 +38,7 @@ const ProductList = () => {
             try {
                 const response = await fetch(`${import.meta.env.VITE_API_URL}/api/products/${id}`, {
                     method: 'DELETE',
-                    headers: {
-                        Authorization: `Bearer ${user.token}`
-                    }
+                    credentials: 'include',
                 });
                 if (response.ok) {
                     fetchProducts();
@@ -80,8 +78,8 @@ const ProductList = () => {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',
-                    Authorization: `Bearer ${user.token}`,
                 },
+                credentials: 'include',
                 body: JSON.stringify({ productIds: selectedProductIds, isActive }),
             });
             const data = await response.json();
@@ -123,8 +121,8 @@ const ProductList = () => {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',
-                    Authorization: `Bearer ${user.token}`,
                 },
+                credentials: 'include',
                 body: JSON.stringify({
                     productIds: selectedProductIds,
                     mode: bulkPriceMode,

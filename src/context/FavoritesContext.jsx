@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { useAuth } from './AuthContext';
+import { apiFetch, ApiError } from '../utils/apiClient';
 
 const FavoritesContext = createContext();
 
@@ -19,19 +20,14 @@ export const FavoritesProvider = ({ children }) => {
 
             setLoading(true);
             try {
-                const response = await fetch(`${import.meta.env.VITE_API_URL}/api/users/favourites`, {
-                    headers: {
-                        Authorization: `Bearer ${user.token}`,
-                    },
-                });
-                const data = await response.json();
-                if (response.ok) {
-                    setFavourites(data);
-                } else {
-                    console.error('Failed to load favourites', data);
-                }
+                const data = await apiFetch(`${import.meta.env.VITE_API_URL}/api/users/favourites`);
+                setFavourites(data);
             } catch (error) {
-                console.error('Error loading favourites', error);
+                if (error instanceof ApiError) {
+                    console.error('Failed to load favourites', error.message);
+                } else {
+                    console.error('Error loading favourites', error);
+                }
             } finally {
                 setLoading(false);
             }
@@ -49,36 +45,31 @@ export const FavoritesProvider = ({ children }) => {
         }
 
         try {
-            let response;
+            let data;
             if (isFavourite(product._id)) {
-                response = await fetch(
+                data = await apiFetch(
                     `${import.meta.env.VITE_API_URL}/api/users/favourites/${product._id}`,
                     {
                         method: 'DELETE',
-                        headers: {
-                            Authorization: `Bearer ${user.token}`,
-                        },
                     }
                 );
             } else {
-                response = await fetch(`${import.meta.env.VITE_API_URL}/api/users/favourites`, {
+                data = await apiFetch(`${import.meta.env.VITE_API_URL}/api/users/favourites`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
-                        Authorization: `Bearer ${user.token}`,
                     },
                     body: JSON.stringify({ productId: product._id }),
                 });
             }
 
-            const data = await response.json();
-            if (response.ok) {
-                setFavourites(data);
-            } else {
-                console.error('Failed to update favourites', data);
-            }
+            setFavourites(data);
         } catch (error) {
-            console.error('Error updating favourites', error);
+            if (error instanceof ApiError) {
+                console.error('Failed to update favourites', error.message);
+            } else {
+                console.error('Error updating favourites', error);
+            }
         }
     };
 

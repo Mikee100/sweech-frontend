@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
 import ProductCard from '../components/ProductCard';
 import { SHIPPING_ZONES } from '../constants/shippingZones';
+import ErrorBanner from '../components/ErrorBanner';
 
 const Cart = () => {
     const { cart, cartTotal, removeFromCart, updateQuantity } = useCart();
@@ -11,6 +12,8 @@ const Cart = () => {
     const [couponSuccess, setCouponSuccess] = useState('');
     const [discount, setDiscount] = useState(0);
     const [recommendations, setRecommendations] = useState([]);
+    const [priceNotice, setPriceNotice] = useState('');
+    const [recommendationsError, setRecommendationsError] = useState('');
     const [selectedZoneId, setSelectedZoneId] = useState(() => {
         const stored = localStorage.getItem('shippingZoneId');
         return stored || SHIPPING_ZONES[0].id;
@@ -51,17 +54,32 @@ const Cart = () => {
     const shippingPrice = selectedZone.price;
     const grandTotal = Math.max(cartTotal - discount, 0) + shippingPrice;
 
+    // Refresh recommendations (and ensure we have up-to-date product prices/stock)
     useEffect(() => {
         const fetchRecommendations = async () => {
             try {
                 const res = await fetch(`${import.meta.env.VITE_API_URL}/api/products`);
                 const data = await res.json();
-                // Filter out products already in cart and just show a few
                 const cartIds = new Set(cart.map((item) => item._id));
                 const filtered = data.filter((p) => !cartIds.has(p._id));
                 setRecommendations(filtered.slice(0, 4));
+
+                // Light price consistency check: if any prices changed, let the user know
+                const priceChanged = cart.some((item) => {
+                    const latest = data.find((p) => p._id === item._id);
+                    return latest && latest.price !== item.price;
+                });
+
+                if (priceChanged) {
+                    setPriceNotice(
+                        'Some product prices have been updated since you added them to the cart. Totals reflect the latest prices.'
+                    );
+                } else {
+                    setPriceNotice('');
+                }
             } catch (err) {
                 console.error('Error fetching recommendations', err);
+                setRecommendationsError('We could not load product recommendations right now. Your cart is still ready to check out.');
             }
         };
 
@@ -115,6 +133,7 @@ const Cart = () => {
             <div className="cart-layout">
                 {/* Left: Cart items + coupon + recommendations */}
                 <div className="cart-main-column">
+                    <ErrorBanner message={recommendationsError} onClose={() => setRecommendationsError('')} compact />
                     {/* Cart items table */}
                     <div
                         style={{
@@ -407,7 +426,7 @@ const Cart = () => {
                     )}
                 </div>
 
-                {/* Right: Cart totals + shipping table */}
+                {/* Right: Cart summary + shipping options (Sweech-style) */}
                 <aside className="cart-summary-column">
                     <div
                         style={{
@@ -423,9 +442,11 @@ const Cart = () => {
                                 fontSize: '18px',
                                 margin: '0 0 16px',
                                 fontWeight: 600,
+                                textTransform: 'uppercase',
+                                letterSpacing: '0.06em',
                             }}
                         >
-                            Cart totals
+                            Cart summary
                         </h2>
 
                         <div
@@ -445,6 +466,19 @@ const Cart = () => {
                                 <span style={{ color: '#666' }}>Subtotal</span>
                                 <span>KSh {cartTotal.toLocaleString()}</span>
                             </div>
+                            {priceNotice && (
+                                <div
+                                    style={{
+                                        fontSize: '12px',
+                                        color: '#92400e',
+                                        backgroundColor: '#fffbeb',
+                                        borderRadius: '6px',
+                                        padding: '6px 8px',
+                                    }}
+                                >
+                                    {priceNotice}
+                                </div>
+                            )}
                             {discount > 0 && (
                                 <div
                                     style={{
@@ -457,34 +491,95 @@ const Cart = () => {
                                     <span>- KSh {Math.round(discount).toLocaleString()}</span>
                                 </div>
                             )}
-                            <div
+                        </div>
+
+                        <div
+                            style={{
+                                borderTop: '1px solid #f3f4f6',
+                                paddingTop: '14px',
+                                marginTop: '4px',
+                                marginBottom: '12px',
+                            }}
+                        >
+                            <h3
                                 style={{
-                                    display: 'flex',
-                                    justifyContent: 'space-between',
+                                    fontSize: '14px',
+                                    margin: '0 0 8px',
+                                    fontWeight: 600,
+                                    textTransform: 'uppercase',
+                                    letterSpacing: '0.06em',
+                                    color: '#4b5563',
                                 }}
                             >
-                                <span style={{ color: '#666' }}>Shipping ({selectedZone.label})</span>
-                                <span>
-                                    {shippingPrice === 0
-                                        ? 'Pick up (Free)'
-                                        : `KSh ${shippingPrice.toLocaleString()}`}
-                                </span>
-                            </div>
-                            <div
+                                Shipment 1 – choose your delivery / pickup area
+                            </h3>
+                            <ul
                                 style={{
-                                    display: 'flex',
-                                    justifyContent: 'space-between',
-                                    borderTop: '1px solid #eee',
-                                    paddingTop: '12px',
-                                    marginTop: '6px',
-                                    fontWeight: 700,
-                                    fontSize: '16px',
-                                    color: '#E41E26',
+                                    listStyle: 'none',
+                                    padding: 0,
+                                    margin: 0,
+                                    fontSize: '13px',
+                                    color: '#4b5563',
                                 }}
                             >
-                                <span>Total</span>
-                                <span>KSh {Math.round(grandTotal).toLocaleString()}</span>
-                            </div>
+                                {SHIPPING_ZONES.map((zone) => (
+                                    <li
+                                        key={zone.id}
+                                        style={{
+                                            padding: '6px 0',
+                                            borderBottom: '1px solid #f3f4f6',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            gap: '8px',
+                                        }}
+                                    >
+                                        <input
+                                            type="radio"
+                                            name="shippingZone"
+                                            value={zone.id}
+                                            checked={zone.id === selectedZoneId}
+                                            onChange={() => handleSelectZone(zone.id)}
+                                            style={{ marginTop: 0 }}
+                                        />
+                                        <div
+                                            style={{
+                                                display: 'flex',
+                                                justifyContent: 'space-between',
+                                                width: '100%',
+                                                gap: '8px',
+                                            }}
+                                        >
+                                            <span>{zone.label}</span>
+                                            <span
+                                                style={{
+                                                    fontWeight: 600,
+                                                    color: '#111827',
+                                                }}
+                                            >
+                                                {zone.price === 0
+                                                    ? 'Pick up (Free)'
+                                                    : `KSh ${zone.price.toLocaleString()}`}
+                                            </span>
+                                        </div>
+                                    </li>
+                                ))}
+                            </ul>
+                        </div>
+
+                        <div
+                            style={{
+                                display: 'flex',
+                                justifyContent: 'space-between',
+                                borderTop: '1px solid #e5e7eb',
+                                paddingTop: '12px',
+                                marginTop: '4px',
+                                fontWeight: 700,
+                                fontSize: '16px',
+                                color: '#111827',
+                            }}
+                        >
+                            <span>Total</span>
+                            <span>KSh {Math.round(grandTotal).toLocaleString()}</span>
                         </div>
 
                         <p
@@ -494,7 +589,7 @@ const Cart = () => {
                                 marginBottom: '16px',
                             }}
                         >
-                            Shipping options and final totals will be updated during checkout based on
+                            Shipping options and final totals will be confirmed during checkout based on
                             your exact delivery location.
                         </p>
 
@@ -519,88 +614,19 @@ const Cart = () => {
                             </button>
                         </Link>
 
-                        <Link to="/" style={{ textDecoration: 'none' }}>
-                            <button
-                                style={{
-                                    width: '100%',
-                                    padding: '12px 18px',
-                                    borderRadius: '999px',
-                                    border: '1px solid #ddd',
-                                    backgroundColor: 'white',
-                                    color: '#333',
-                                    fontWeight: 500,
-                                    fontSize: '14px',
-                                    cursor: 'pointer',
-                                }}
-                            >
-                                Continue shopping
-                            </button>
-                        </Link>
-                    </div>
-
-                    <div
-                        style={{
-                            backgroundColor: 'white',
-                            borderRadius: '12px',
-                            boxShadow: '0 5px 15px rgba(0,0,0,0.05)',
-                            padding: '20px',
-                            maxHeight: '400px',
-                            overflowY: 'auto',
-                        }}
-                    >
-                        <h3
+                        <Link
+                            to="/"
                             style={{
-                                fontSize: '15px',
-                                margin: '0 0 10px',
-                                fontWeight: 600,
-                            }}
-                        >
-                            Shipment 1 – choose your delivery / pickup area
-                        </h3>
-                        <ul
-                            style={{
-                                listStyle: 'none',
-                                padding: 0,
-                                margin: 0,
+                                display: 'inline-block',
+                                marginTop: '8px',
                                 fontSize: '13px',
-                                color: '#555',
+                                color: '#4b5563',
+                                textDecoration: 'underline',
+                                textUnderlineOffset: '3px',
                             }}
                         >
-                            {SHIPPING_ZONES.map((zone) => (
-                                <li
-                                    key={zone.id}
-                                    style={{
-                                        padding: '8px 0',
-                                        borderBottom: '1px solid #f5f5f5',
-                                        display: 'flex',
-                                        alignItems: 'flex-start',
-                                        gap: '8px',
-                                    }}
-                                >
-                                    <input
-                                        type="radio"
-                                        name="shippingZone"
-                                        value={zone.id}
-                                        checked={zone.id === selectedZoneId}
-                                        onChange={() => handleSelectZone(zone.id)}
-                                        style={{ marginTop: '3px' }}
-                                    />
-                                    <div>
-                                        <span>{zone.label}: </span>
-                                        <span
-                                            style={{
-                                                fontWeight: 600,
-                                                color: '#111',
-                                            }}
-                                        >
-                                            {zone.price === 0
-                                                ? 'Pick up (Free)'
-                                                : `KSh ${zone.price.toLocaleString()}`}
-                                        </span>
-                                    </div>
-                                </li>
-                            ))}
-                        </ul>
+                            Continue shopping
+                        </Link>
                     </div>
                 </aside>
             </div>

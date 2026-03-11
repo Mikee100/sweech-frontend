@@ -1,6 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
+import { Helmet } from 'react-helmet-async';
 import { slugify, matchesCategorySlug } from '../utils/categoryMap';
+import ErrorBanner from '../components/ErrorBanner';
+import { apiFetch, ApiError } from '../utils/apiClient';
 
 const Category = () => {
     const { categoryName } = useParams();
@@ -11,18 +14,21 @@ const Category = () => {
     useEffect(() => {
         const fetchProducts = async () => {
             setLoading(true);
+            setError('');
             try {
-                const response = await fetch(`${import.meta.env.VITE_API_URL}/api/products`);
-                const data = await response.json();
+                const data = await apiFetch(`${import.meta.env.VITE_API_URL}/api/products`);
 
                 const targetSlug = slugify(categoryName || '');
-
                 const filtered = data.filter((p) => matchesCategorySlug(p, targetSlug));
 
                 setProducts(filtered);
-                setLoading(false);
             } catch (err) {
-                setError('Failed to fetch products');
+                if (err instanceof ApiError) {
+                    setError(err.message || 'Failed to load this category. Please try again.');
+                } else {
+                    setError('Failed to load this category. Please try again.');
+                }
+            } finally {
                 setLoading(false);
             }
         };
@@ -42,34 +48,27 @@ const Category = () => {
         categoryName.charAt(0).toUpperCase() +
         categoryName.slice(1).replace(/-/g, ' ');
 
+    const pageTitle = `${formattedTitle} | CaseProz Kenya`;
+    const metaDescription = `Browse ${formattedTitle} at CaseProz – curated tech, accessories and gadgets in Kenya.`;
+
     return (
         <div className="category-page container" style={{ padding: '40px 0' }}>
-            <div className="breadcrumb" style={{ marginBottom: '30px', color: '#666', fontSize: '14px' }}>
+            <Helmet>
+                <title>{pageTitle}</title>
+                <meta name="description" content={metaDescription} />
+            </Helmet>
+            <div className="breadcrumb" style={{ marginBottom: '18px', color: '#666', fontSize: '14px' }}>
                 <Link to="/" style={{ color: '#E41E26', textDecoration: 'none' }}>Home</Link> /
                 <span style={{ marginLeft: '5px', fontWeight: 'bold' }}>{formattedTitle}</span>
             </div>
 
-            <h1 style={{ fontSize: '32px', fontWeight: '800', marginBottom: '40px', color: '#1a1a1a' }}>
+            <h1 style={{ fontSize: '32px', fontWeight: '800', marginBottom: '12px', color: '#1a1a1a' }}>
                 {formattedTitle}
             </h1>
 
-            {error ? (
-                <div style={{ textAlign: 'center', padding: '100px 0', color: '#e1261c' }}>
-                    <h3>{error}</h3>
-                    <Link
-                        to="/search"
-                        style={{
-                            color: '#E41E26',
-                            textDecoration: 'none',
-                            fontWeight: 'bold',
-                            marginTop: '20px',
-                            display: 'inline-block',
-                        }}
-                    >
-                        Browse all products
-                    </Link>
-                </div>
-            ) : products.length === 0 ? (
+            <ErrorBanner message={error} onClose={() => setError('')} />
+
+            {products.length === 0 ? (
                 <div style={{ textAlign: 'center', padding: '100px 0', color: '#666' }}>
                     <h3>No products found in this category.</h3>
                     <Link to="/" style={{ color: '#E41E26', textDecoration: 'none', fontWeight: 'bold', marginTop: '20px', display: 'inline-block' }}>Continue Shopping</Link>

@@ -93,7 +93,7 @@ const SiteSettings = () => {
 
     const submitHandler = async (e) => {
         e.preventDefault();
-        if (!user || !user.token) return;
+        if (!user) return;
 
         setSaving(true);
         setMessage('');
@@ -112,8 +112,8 @@ const SiteSettings = () => {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',
-                    Authorization: `Bearer ${user.token}`,
                 },
+                credentials: 'include',
                 body: JSON.stringify(body),
             });
 

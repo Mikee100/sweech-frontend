@@ -14,9 +14,7 @@ const UserList = () => {
         const fetchUsers = async () => {
             try {
                 const response = await fetch(`${import.meta.env.VITE_API_URL}/api/users`, {
-                    headers: {
-                        Authorization: `Bearer ${user.token}`
-                    }
+                    credentials: 'include'
                 });
                 const data = await response.json();
                 if (response.ok) {
@@ -41,9 +39,7 @@ const UserList = () => {
             try {
                 const response = await fetch(`${import.meta.env.VITE_API_URL}/api/users/${id}`, {
                     method: 'DELETE',
-                    headers: {
-                        Authorization: `Bearer ${user.token}`
-                    }
+                    credentials: 'include'
                 });
                 if (response.ok) {
                     setUsers(users.filter(u => u._id !== id));

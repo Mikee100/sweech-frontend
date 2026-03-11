@@ -33,9 +33,7 @@ const UserEdit = () => {
         const fetchUser = async () => {
             try {
                 const response = await fetch(`${import.meta.env.VITE_API_URL}/api/users/${id}`, {
-                    headers: {
-                        Authorization: `Bearer ${user.token}`
-                    }
+                    credentials: 'include'
                 });
                 const data = await response.json();
                 if (response.ok) {
@@ -69,9 +67,7 @@ const UserEdit = () => {
             try {
                 const params = new URLSearchParams({ email });
                 const response = await fetch(`${import.meta.env.VITE_API_URL}/api/orders?${params.toString()}`, {
-                    headers: {
-                        Authorization: `Bearer ${user.token}`,
-                    },
+                    credentials: 'include',
                 });
                 const data = await response.json();
                 if (response.ok) {
@@ -112,8 +108,8 @@ const UserEdit = () => {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',
-                    Authorization: `Bearer ${user.token}`
                 },
+                credentials: 'include',
                 body: JSON.stringify({ name, email, isAdmin: nextIsAdmin, role, notes, tags })
             });
             const data = await response.json();

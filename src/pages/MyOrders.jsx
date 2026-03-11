@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { apiFetch, ApiError } from '../utils/apiClient';
+import ErrorBanner from '../components/ErrorBanner';
 
 const MyOrders = () => {
     const { user } = useAuth();
@@ -17,19 +19,23 @@ const MyOrders = () => {
 
         const fetchOrders = async () => {
             try {
-                const response = await fetch(`${import.meta.env.VITE_API_URL}/api/orders/myorders`, {
+                const data = await apiFetch(`${import.meta.env.VITE_API_URL}/api/orders/myorders`, {
                     headers: {
-                        Authorization: `Bearer ${user.token}`,
+                        'Content-Type': 'application/json',
                     },
+                    credentials: 'include',
                 });
-                const data = await response.json();
-                if (response.ok) {
-                    setOrders(data);
-                } else {
-                    setError(data.message || 'Failed to fetch orders');
-                }
+                setOrders(data);
             } catch (err) {
-                setError('Something went wrong while fetching your orders.');
+                if (err instanceof ApiError) {
+                    if (err.status === 401) {
+                        setError('Your session has expired. Please log in again to view your orders.');
+                    } else {
+                        setError(err.message || 'Something went wrong while fetching your orders.');
+                    }
+                } else {
+                    setError('Something went wrong while fetching your orders.');
+                }
             } finally {
                 setLoading(false);
             }
@@ -116,14 +122,12 @@ const MyOrders = () => {
                 </div>
             </div>
 
+            <ErrorBanner message={error} onClose={() => setError('')} />
+
             {loading ? (
                 <div style={{ textAlign: 'center', padding: '80px 0', color: '#6b7280' }}>
                     <div className="loading-spinner large"></div>
                     <p style={{ marginTop: '16px' }}>Loading your orders...</p>
-                </div>
-            ) : error ? (
-                <div style={{ textAlign: 'center', padding: '80px 0', color: '#dc2626', fontSize: '14px' }}>
-                    {error}
                 </div>
             ) : orders.length === 0 ? (
                 <div style={{ textAlign: 'center', padding: '80px 0' }}>

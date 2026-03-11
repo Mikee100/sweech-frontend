@@ -1,9 +1,12 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useLocation, useNavigate, Link } from 'react-router-dom';
+import { Helmet } from 'react-helmet-async';
 import ProductCard from '../components/ProductCard';
 import SkeletonProduct from '../components/SkeletonProduct';
 import SearchFilters from '../components/SearchFilters';
 import { SlidersHorizontal, X } from 'lucide-react';
+import ErrorBanner from '../components/ErrorBanner';
+import { apiFetch, ApiError } from '../utils/apiClient';
 
 const POPULAR_BRANDS = ['Apple', 'Samsung', 'Sony', 'Dell', 'ASUS', 'HP', 'Lenovo'];
 const POPULAR_CATEGORY_QUERIES = [
@@ -136,30 +139,29 @@ const Search = () => {
                 const sortParam = sortMap[sort] || 'newest';
                 params.append('sort', sortParam);
 
-                const response = await fetch(
+                const data = await apiFetch(
                     `${import.meta.env.VITE_API_URL}/api/products?${params.toString()}`,
                     { signal: controller.signal }
                 );
-                const data = await response.json();
 
-                if (response.ok) {
-                    if (Array.isArray(data)) {
-                        setProducts(data);
-                        setTotal(data.length);
-                        setPages(1);
-                    } else {
-                        setProducts(data.products || []);
-                        setTotal(data.total || 0);
-                        setPages(data.pages || 1);
-                    }
+                if (Array.isArray(data)) {
+                    setProducts(data);
+                    setTotal(data.length);
+                    setPages(1);
                 } else {
-                    setError(data.message || 'Failed to fetch search results');
+                    setProducts(data.products || []);
+                    setTotal(data.total || 0);
+                    setPages(data.pages || 1);
                 }
             } catch (err) {
                 if (err.name === 'AbortError') {
                     return;
                 }
-                setError('Failed to fetch search results');
+                if (err instanceof ApiError) {
+                    setError(err.message || 'Failed to fetch search results.');
+                } else {
+                    setError('Failed to fetch search results. Please try again in a moment.');
+                }
             } finally {
                 setLoading(false);
             }
@@ -234,8 +236,27 @@ const Search = () => {
     const isInitialLoading = loading && products.length === 0;
     const isRefetching = loading && products.length > 0;
 
+    let pageTitle = 'Search products | CaseProz Kenya';
+    let metaDescription = 'Search CaseProz for premium tech, cases, chargers, audio and accessories in Kenya.';
+
+    if (hasQuery) {
+        pageTitle = `Search "${q}" | CaseProz Kenya`;
+        metaDescription = `Search results for "${q}" at CaseProz. Discover curated tech, cases, audio and accessories.`;
+    } else if (categoryParam) {
+        pageTitle = `Browse ${categoryParam} | CaseProz Kenya`;
+        metaDescription = `Browse products in ${categoryParam} at CaseProz.`;
+    } else if (brandParam) {
+        pageTitle = `Shop ${brandParam} products | CaseProz Kenya`;
+        metaDescription = `Discover ${brandParam} products at CaseProz – premium tech, power and accessories.`;
+    }
+
     return (
         <div className="search-page">
+            <Helmet>
+                <title>{pageTitle}</title>
+                <meta name="description" content={metaDescription} />
+                {!hasAnyFilters && <meta name="robots" content="noindex,follow" />}
+            </Helmet>
             <section className="search-hero">
                 <div className="container">
                     <div className="search-hero-content">
@@ -274,6 +295,9 @@ const Search = () => {
 
             <section className="search-results-section">
                 <div className="container">
+                    {error && hasAnyFilters && (
+                        <ErrorBanner message={error} onClose={() => setError('')} />
+                    )}
                     {hasAnyFilters && (
                         <button
                             className="mobile-filter-toggle"
@@ -330,11 +354,6 @@ const Search = () => {
                                     {[...Array(12)].map((_, i) => (
                                         <SkeletonProduct key={i} />
                                     ))}
-                                </div>
-                            ) : error && hasAnyFilters ? (
-                                <div className="search-state center error">
-                                    <i className="fas fa-exclamation-circle"></i>
-                                    <p>{error}</p>
                                 </div>
                             ) : hasAnyFilters && products.length === 0 ? (
                                 <div className="search-state center empty animate-in">

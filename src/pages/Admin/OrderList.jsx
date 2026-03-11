@@ -58,9 +58,7 @@ const OrderList = () => {
         try {
             const query = buildQueryString();
             const response = await fetch(`${import.meta.env.VITE_API_URL}/api/orders${query}`, {
-                headers: {
-                    Authorization: `Bearer ${user.token}`
-                }
+                credentials: 'include'
             });
             const data = await response.json();
             if (response.ok) {
@@ -89,8 +87,8 @@ const OrderList = () => {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',
-                    Authorization: `Bearer ${user.token}`,
                 },
+                credentials: 'include',
                 body: JSON.stringify({ status: newStatus }),
             });
 
@@ -138,8 +136,8 @@ const OrderList = () => {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',
-                    Authorization: `Bearer ${user.token}`,
                 },
+                credentials: 'include',
                 body: JSON.stringify({ orderIds: selectedOrderIds, status: bulkStatus }),
             });
 
@@ -485,7 +483,7 @@ const OrderList = () => {
                                     </td>
                                     <td style={{ padding: '12px', fontSize: '14px', textAlign: 'right' }}>
                                         <Link
-                                            to={`/order/${order._id}`}
+                                            to={`/admin/order/${order._id}`}
                                             style={{
                                                 backgroundColor: '#f3f4f6',
                                                 color: '#374151',

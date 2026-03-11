@@ -11,9 +11,7 @@ const Dashboard = () => {
         const fetchAnalytics = async () => {
             try {
                 const response = await fetch(`${import.meta.env.VITE_API_URL}/api/analytics/summary`, {
-                    headers: {
-                        Authorization: `Bearer ${user.token}`
-                    }
+                    credentials: 'include'
                 });
                 const data = await response.json();
                 if (response.ok) {

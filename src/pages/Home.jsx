@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Helmet } from 'react-helmet-async';
 import HomeSlider from '../components/HomeSlider';
 import FeatureStats from '../components/FeatureStats';
 import CategoryShowcase from '../components/CategoryShowcase';
@@ -8,6 +9,8 @@ import { ChevronRight } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 import { useSiteConfig } from '../context/SiteConfigContext';
+import ErrorBanner from '../components/ErrorBanner';
+import { apiFetch, ApiError } from '../utils/apiClient';
 
 const homeBrands = [
     'Anker',
@@ -46,18 +49,22 @@ const homeTestimonials = [
 const Home = () => {
     const [products, setProducts] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [error, setError] = useState('');
     const { config } = useSiteConfig();
 
     useEffect(() => {
         const fetchProducts = async () => {
             try {
-                const response = await fetch(`${import.meta.env.VITE_API_URL}/api/products`);
-                const data = await response.json();
-                // Load full list so we can show more rich sections
+                const data = await apiFetch(`${import.meta.env.VITE_API_URL}/api/products`);
                 setProducts(data);
-                setLoading(false);
-            } catch (error) {
-                console.error('Error fetching products:', error);
+            } catch (err) {
+                console.error('Error fetching products:', err);
+                if (err instanceof ApiError) {
+                    setError(err.message || 'We could not load products right now.');
+                } else {
+                    setError('We could not load products right now. Please refresh in a moment.');
+                }
+            } finally {
                 setLoading(false);
             }
         };
@@ -176,8 +183,33 @@ const Home = () => {
                   },
               ];
 
+    const productCount = products.length;
+
     return (
         <div className="home-page">
+            <Helmet>
+                <title>CaseProz | Premium Tech, Cases & Accessories in Kenya</title>
+                <meta
+                    name="description"
+                    content="Shop premium phone cases, chargers, audio, power and accessories at CaseProz. Fast delivery across Kenya and curated picks from brands like Anker, Soundcore, Samsung and more."
+                />
+                <meta
+                    name="keywords"
+                    content="CaseProz, phone cases Kenya, Anker Kenya, chargers, power banks, headphones, electronics accessories Nairobi"
+                />
+                {productCount > 0 && (
+                    <meta
+                        name="robots"
+                        content="index,follow"
+                    />
+                )}
+            </Helmet>
+            {error && (
+                <div className="container" style={{ marginTop: '16px' }}>
+                    <ErrorBanner message={error} onClose={() => setError('')} />
+                </div>
+            )}
+
             <HomeSlider />
             <FeatureStats />
             <CategoryShowcase />

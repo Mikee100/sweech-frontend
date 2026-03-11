@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { apiFetch, ApiError } from '../utils/apiClient';
+import ErrorBanner from '../components/ErrorBanner.jsx';
 
 const OrderDetails = () => {
     const { id } = useParams();
@@ -12,19 +14,25 @@ const OrderDetails = () => {
     useEffect(() => {
         const fetchOrder = async () => {
             try {
-                const response = await fetch(`${import.meta.env.VITE_API_URL}/api/orders/${id}`, {
+                const data = await apiFetch(`${import.meta.env.VITE_API_URL}/api/orders/${id}`, {
                     headers: {
-                        Authorization: `Bearer ${user.token}`
-                    }
+                        'Content-Type': 'application/json',
+                    },
+                    credentials: 'include',
                 });
-                const data = await response.json();
-                if (response.ok) {
-                    setOrder(data);
-                } else {
-                    setError(data.message || 'Failed to fetch order');
-                }
+                setOrder(data);
             } catch (err) {
-                setError('Something went wrong');
+                if (err instanceof ApiError) {
+                    if (err.status === 404) {
+                        setError('We could not find this order. Please check the link from your email or view it from My Orders.');
+                    } else if (err.status === 401 || err.status === 403) {
+                        setError('You do not have access to this order. Please log in with the account that placed it.');
+                    } else {
+                        setError(err.message);
+                    }
+                } else {
+                    setError('Something went wrong while loading your order. Please try again.');
+                }
             } finally {
                 setLoading(false);
             }
@@ -42,7 +50,15 @@ const OrderDetails = () => {
                 <p style={{ marginTop: '16px', color: '#6b7280', fontSize: '14px' }}>Loading order...</p>
             </div>
         );
-    if (error) return <div className="container" style={{ padding: '100px 0', textAlign: 'center', color: '#dc2626' }}>{error}</div>;
+    if (error)
+        return (
+            <div className="container" style={{ padding: '80px 0' }}>
+                <ErrorBanner message={error} />
+                <Link to="/orders" style={{ fontSize: '14px', color: '#2563eb', textDecoration: 'underline' }}>
+                    Go back to My Orders
+                </Link>
+            </div>
+        );
     if (!order) return null;
 
     const rawStatus = order.status || (order.isDelivered ? 'delivered' : order.isPaid ? 'processing' : 'pending');
@@ -67,20 +83,42 @@ const OrderDetails = () => {
         return 'Pending confirmation';
     };
 
+    const placedDate = order.createdAt ? new Date(order.createdAt) : null;
+    const etaDate =
+        placedDate && !order.isDelivered
+            ? new Date(placedDate.getTime() + 2 * 24 * 60 * 60 * 1000)
+            : null;
+
     return (
         <div className="order-details-page container" style={{ padding: '60px 0' }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px', marginBottom: '30px' }}>
+            <div
+                style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    gap: '10px',
+                    marginBottom: '30px',
+                }}
+            >
                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                    <Link to="/" style={{ color: '#E41E26', textDecoration: 'none' }}>Home</Link>
-                    <i className="fas fa-chevron-right" style={{ fontSize: '10px', color: '#ccc' }}></i>
-                    <span style={{ fontWeight: 'bold' }}>Order #{order._id}</span>
+                    <Link to="/" style={{ color: '#4b5563', fontSize: '13px', textDecoration: 'none' }}>
+                        Home
+                    </Link>
+                    <i className="fas fa-chevron-right" style={{ fontSize: '10px', color: '#d1d5db' }}></i>
+                    <Link to="/orders" style={{ color: '#4b5563', fontSize: '13px', textDecoration: 'none' }}>
+                        My orders
+                    </Link>
+                    <i className="fas fa-chevron-right" style={{ fontSize: '10px', color: '#d1d5db' }}></i>
+                    <span style={{ fontWeight: 'bold', fontSize: '13px', color: '#111827' }}>
+                        Order #{order._id.slice(-6)}
+                    </span>
                 </div>
                 <button
                     type="button"
                     onClick={() => window.print()}
                     style={{
                         padding: '8px 14px',
-                        borderRadius: '8px',
+                        borderRadius: '999px',
                         border: '1px solid #e5e7eb',
                         backgroundColor: 'white',
                         color: '#111827',
@@ -93,20 +131,104 @@ const OrderDetails = () => {
                     }}
                 >
                     <i className="fas fa-print"></i>
-                    Print / Save as PDF
+                    Print / save receipt
                 </button>
             </div>
 
-            <div style={{ backgroundColor: '#fdf2f2', padding: '30px', borderRadius: '12px', marginBottom: '40px', border: '1px solid #fee2e2' }}>
-                <h1 style={{ color: '#E41E26', fontSize: '24px', margin: '0 0 10px 0' }}>Thank you for your order!</h1>
-                <p style={{ color: '#666', margin: '0 0 16px 0' }}>
-                    Your order is currently:
-                    {' '}
-                    <span style={{ fontWeight: 600 }}>{formatStatusLabel(rawStatus)}</span>
-                    .
-                </p>
+            <div
+                style={{
+                    background: 'linear-gradient(135deg,#111827,#1f2937)',
+                    padding: '28px 30px',
+                    borderRadius: '18px',
+                    marginBottom: '40px',
+                    color: '#f9fafb',
+                    boxShadow: '0 25px 60px rgba(15,23,42,0.55)',
+                }}
+            >
+                <div style={{ display: 'flex', justifyContent: 'space-between', gap: '20px', flexWrap: 'wrap' }}>
+                    <div>
+                        <h1
+                            style={{
+                                fontSize: '24px',
+                                margin: '0 0 6px 0',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '10px',
+                            }}
+                        >
+                            Thank you, {order.user.name.split(' ')[0]}!
+                            <span
+                                style={{
+                                    fontSize: '11px',
+                                    textTransform: 'uppercase',
+                                    letterSpacing: '0.18em',
+                                    backgroundColor: 'rgba(239, 68, 68, 0.18)',
+                                    borderRadius: '999px',
+                                    padding: '4px 10px',
+                                    color: '#fee2e2',
+                                }}
+                            >
+                                Order #{order._id}
+                            </span>
+                        </h1>
+                        <p style={{ opacity: 0.85, margin: 0, fontSize: '13px' }}>
+                            Your order is currently{' '}
+                            <span style={{ fontWeight: 600 }}>{formatStatusLabel(rawStatus)}</span>.
+                        </p>
+                        {placedDate && (
+                            <p style={{ opacity: 0.7, margin: '6px 0 0', fontSize: '12px' }}>
+                                Placed on {placedDate.toLocaleDateString()} at{' '}
+                                {placedDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                {etaDate && (
+                                    <>
+                                        {' '}
+                                        · Estimated delivery by {etaDate.toLocaleDateString()}
+                                    </>
+                                )}
+                            </p>
+                        )}
+                    </div>
+                    <div
+                        style={{
+                            display: 'flex',
+                            flexDirection: 'column',
+                            alignItems: 'flex-end',
+                            gap: '6px',
+                            minWidth: '170px',
+                        }}
+                    >
+                        <span style={{ fontSize: '11px', textTransform: 'uppercase', opacity: 0.7 }}>
+                            Order total
+                        </span>
+                        <span style={{ fontSize: '22px', fontWeight: 700 }}>
+                            KSh {order.totalPrice.toLocaleString()}
+                        </span>
+                        <span
+                            style={{
+                                fontSize: '11px',
+                                padding: '3px 9px',
+                                borderRadius: '999px',
+                                backgroundColor: 'rgba(34,197,94,0.16)',
+                                color: '#bbf7d0',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '5px',
+                            }}
+                        >
+                            <span
+                                style={{
+                                    width: 6,
+                                    height: 6,
+                                    borderRadius: '999px',
+                                    backgroundColor: rawStatus === 'delivered' ? '#22c55e' : '#facc15',
+                                }}
+                            ></span>
+                            {order.isPaid ? 'Payment confirmed' : 'Payment on delivery'}
+                        </span>
+                    </div>
+                </div>
 
-                <div style={{ marginTop: '10px' }}>
+                <div style={{ marginTop: '18px' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', marginBottom: '8px', color: '#6b7280' }}>
                         <span>Order timeline</span>
                         {order.trackingNumber && (
@@ -187,27 +309,84 @@ const OrderDetails = () => {
                 </div>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 350px', gap: '40px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1.6fr) minmax(0,1fr)', gap: '32px' }}>
                 <div className="order-info">
-                    <div style={{ backgroundColor: 'white', padding: '30px', borderRadius: '12px', boxShadow: '0 5px 15px rgba(0,0,0,0.05)', marginBottom: '30px' }}>
-                        <h2 style={{ fontSize: '18px', marginBottom: '20px', borderBottom: '1px solid #eee', paddingBottom: '15px' }}>Delivery Details</h2>
-                        <p style={{ margin: '0 0 5px 0' }}><strong>Name:</strong> {order.user.name}</p>
-                        <p style={{ margin: '0 0 5px 0' }}><strong>Email:</strong> {order.user.email}</p>
-                        <p style={{ margin: '15px 0 5px 0' }}><strong>Shipping Address:</strong></p>
-                        <p style={{ margin: 0, color: '#666' }}>
-                            {order.shippingAddress.address}, {order.shippingAddress.city}<br />
+                    <div
+                        style={{
+                            backgroundColor: 'white',
+                            padding: '24px 26px',
+                            borderRadius: '14px',
+                            boxShadow: '0 10px 30px rgba(15,23,42,0.06)',
+                            marginBottom: '26px',
+                        }}
+                    >
+                        <h2
+                            style={{
+                                fontSize: '17px',
+                                marginBottom: '16px',
+                                borderBottom: '1px solid #f3f4f6',
+                                paddingBottom: '12px',
+                            }}
+                        >
+                            Delivery details
+                        </h2>
+                        <p style={{ margin: '0 0 4px 0', fontSize: '14px' }}>
+                            <strong>Name:</strong> {order.user.name}
+                        </p>
+                        <p style={{ margin: '0 0 12px 0', fontSize: '14px' }}>
+                            <strong>Email:</strong> {order.user.email}
+                        </p>
+                        <p style={{ margin: '0 0 4px 0', fontSize: '14px' }}>
+                            <strong>Shipping address:</strong>
+                        </p>
+                        <p style={{ margin: 0, color: '#4b5563', fontSize: '14px', lineHeight: 1.5 }}>
+                            {order.shippingAddress.address}, {order.shippingAddress.city}
+                            <br />
                             {order.shippingAddress.postalCode}, {order.shippingAddress.country}
                         </p>
                     </div>
 
-                    <div style={{ backgroundColor: 'white', padding: '30px', borderRadius: '12px', boxShadow: '0 5px 15px rgba(0,0,0,0.05)' }}>
-                        <h2 style={{ fontSize: '18px', marginBottom: '20px', borderBottom: '1px solid #eee', paddingBottom: '15px' }}>Order Items</h2>
+                    <div
+                        style={{
+                            backgroundColor: 'white',
+                            padding: '24px 26px',
+                            borderRadius: '14px',
+                            boxShadow: '0 10px 30px rgba(15,23,42,0.06)',
+                        }}
+                    >
+                        <h2
+                            style={{
+                                fontSize: '17px',
+                                marginBottom: '16px',
+                                borderBottom: '1px solid #f3f4f6',
+                                paddingBottom: '12px',
+                            }}
+                        >
+                            Items in your order
+                        </h2>
                         {order.orderItems.map((item, index) => (
-                            <div key={index} style={{ display: 'flex', gap: '20px', marginBottom: '20px', paddingBottom: '20px', borderBottom: index === order.orderItems.length - 1 ? 'none' : '1px solid #f9f9f9' }}>
+                            <div
+                                key={index}
+                                style={{
+                                    display: 'flex',
+                                    gap: '16px',
+                                    marginBottom: '16px',
+                                    paddingBottom: '16px',
+                                    borderBottom:
+                                        index === order.orderItems.length - 1 ? 'none' : '1px solid #f3f4f6',
+                                }}
+                            >
                                 <img src={item.image} alt={item.name} style={{ width: '80px', height: '80px', objectFit: 'contain', backgroundColor: '#f9f9f9', borderRadius: '8px' }} />
                                 <div style={{ flex: 1 }}>
-                                    <h4 style={{ margin: '0 0 10px 0', fontSize: '16px' }}>{item.name}</h4>
-                                    <p style={{ margin: 0, color: '#666' }}>{item.qty} x KSh {item.price.toLocaleString()} = <strong>KSh {(item.qty * item.price).toLocaleString()}</strong></p>
+                                    <h4 style={{ margin: '0 0 6px 0', fontSize: '15px', fontWeight: 600 }}>
+                                        {item.name}
+                                    </h4>
+                                    <p style={{ margin: 0, color: '#6b7280', fontSize: '13px' }}>
+                                        {item.qty} x KSh {item.price.toLocaleString()}{' '}
+                                        <span style={{ color: '#111827', fontWeight: 600 }}>
+                                            = KSh {(item.qty * item.price).toLocaleString()}
+                                        </span>
+                                    </p>
                                 </div>
                             </div>
                         ))}
@@ -215,32 +394,76 @@ const OrderDetails = () => {
                 </div>
 
                 <div className="order-summary">
-                    <div style={{ backgroundColor: 'white', padding: '30px', borderRadius: '12px', boxShadow: '0 5px 15px rgba(0,0,0,0.05)', position: 'sticky', top: '100px' }}>
-                        <h2 style={{ fontSize: '18px', marginBottom: '20px', borderBottom: '1px solid #eee', paddingBottom: '15px' }}>Order Summary</h2>
-                        <div style={{ display: 'grid', gap: '15px' }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px' }}>
-                                <span style={{ color: '#666' }}>Items Total:</span>
+                    <div
+                        style={{
+                            backgroundColor: 'white',
+                            padding: '24px 26px',
+                            borderRadius: '14px',
+                            boxShadow: '0 10px 30px rgba(15,23,42,0.06)',
+                            position: 'sticky',
+                            top: '96px',
+                        }}
+                    >
+                        <h2
+                            style={{
+                                fontSize: '17px',
+                                marginBottom: '16px',
+                                borderBottom: '1px solid #f3f4f6',
+                                paddingBottom: '12px',
+                            }}
+                        >
+                            Order summary
+                        </h2>
+                        <div style={{ display: 'grid', gap: '10px', fontSize: '14px' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                <span style={{ color: '#6b7280' }}>Items total</span>
                                 <span>KSh {order.itemsPrice.toLocaleString()}</span>
                             </div>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px' }}>
-                                <span style={{ color: '#666' }}>Shipping:</span>
+                            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                <span style={{ color: '#6b7280' }}>Shipping</span>
                                 <span>KSh {order.shippingPrice.toLocaleString()}</span>
                             </div>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px' }}>
-                                <span style={{ color: '#666' }}>Tax:</span>
+                            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                <span style={{ color: '#6b7280' }}>Tax</span>
                                 <span>KSh {order.taxPrice.toLocaleString()}</span>
                             </div>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '20px', fontWeight: 'bold', color: '#E41E26', borderTop: '1px solid #eee', paddingTop: '15px' }}>
-                                <span>Total:</span>
+                            <div
+                                style={{
+                                    display: 'flex',
+                                    justifyContent: 'space-between',
+                                    fontSize: '18px',
+                                    fontWeight: 'bold',
+                                    color: '#111827',
+                                    borderTop: '1px solid #e5e7eb',
+                                    paddingTop: '14px',
+                                    marginTop: '4px',
+                                }}
+                            >
+                                <span>Total</span>
                                 <span>KSh {order.totalPrice.toLocaleString()}</span>
                             </div>
                         </div>
 
-                        <div style={{ marginTop: '30px', padding: '15px', backgroundColor: '#f9f9f9', borderRadius: '8px', fontSize: '14px' }}>
-                            <p style={{ margin: '0 0 10px 0' }}><strong>Payment Method:</strong> {order.paymentMethod}</p>
+                        <div
+                            style={{
+                                marginTop: '20px',
+                                padding: '12px 14px',
+                                backgroundColor: '#f9fafb',
+                                borderRadius: '10px',
+                                fontSize: '13px',
+                            }}
+                        >
+                            <p style={{ margin: '0 0 6px 0' }}>
+                                <strong>Payment method:</strong> {order.paymentMethod}
+                            </p>
                             <p style={{ margin: 0 }}>
                                 <strong>Order status:</strong>{' '}
-                                <span style={{ color: rawStatus === 'cancelled' ? '#b91c1c' : '#16a34a' }}>
+                                <span
+                                    style={{
+                                        color: rawStatus === 'cancelled' ? '#b91c1c' : '#16a34a',
+                                        textTransform: 'capitalize',
+                                    }}
+                                >
                                     {formatStatusLabel(rawStatus)}
                                 </span>
                             </p>

@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
+import { apiFetch, ApiError } from '../utils/apiClient';
 
 const SiteConfigContext = createContext(null);
 
@@ -10,15 +11,15 @@ export const SiteConfigProvider = ({ children }) => {
     useEffect(() => {
         const fetchConfig = async () => {
             try {
-                const response = await fetch(`${import.meta.env.VITE_API_URL}/api/site-config`);
-                const data = await response.json();
-                if (!response.ok) {
-                    throw new Error(data.message || 'Failed to load site configuration');
-                }
+                const data = await apiFetch(`${import.meta.env.VITE_API_URL}/api/site-config`);
                 setConfig(data);
             } catch (err) {
                 console.error('Failed to load site config', err);
-                setError(err.message || 'Failed to load site configuration');
+                if (err instanceof ApiError) {
+                    setError(err.message || 'Failed to load site configuration');
+                } else {
+                    setError('Failed to load site configuration');
+                }
             } finally {
                 setLoading(false);
             }

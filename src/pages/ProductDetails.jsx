@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
+import { Helmet } from 'react-helmet-async';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
 import { useFavorites } from '../context/FavoritesContext';
 import { useAuth } from '../context/AuthContext';
 import ProductDescriptionSection from '../components/ProductDescriptionSection';
+import ProductCard from '../components/ProductCard';
 
 const ProductDetails = () => {
     const { slug } = useParams();
@@ -169,8 +171,56 @@ const ProductDetails = () => {
         ).values()
     );
 
+    const pageTitle =
+        product.metaTitle && product.metaTitle.trim().length > 0
+            ? product.metaTitle
+            : `${product.name} | CaseProz Kenya`;
+
+    const metaDescription =
+        product.metaDescription && product.metaDescription.trim().length > 0
+            ? product.metaDescription
+            : `Buy ${product.name} online at CaseProz Kenya. ${hasDiscount ? `Save ${discountPercent}% off the original price. ` : ''}Fast delivery and genuine accessories.`;
+
+    const mainImageUrl =
+        Array.isArray(product.images) && product.images.length > 0
+            ? product.images[0]
+            : undefined;
+
+    const structuredData = {
+        '@context': 'https://schema.org',
+        '@type': 'Product',
+        name: product.name,
+        image: product.images || [],
+        description: metaDescription,
+        sku: product.sku || undefined,
+        brand: product.brand
+            ? {
+                  '@type': 'Brand',
+                  name: product.brand,
+              }
+            : undefined,
+        offers: {
+            '@type': 'Offer',
+            priceCurrency: 'KES',
+            price: product.price,
+            availability:
+                product.stock > 0
+                    ? 'https://schema.org/InStock'
+                    : 'https://schema.org/OutOfStock',
+            url: typeof window !== 'undefined' ? window.location.href : undefined,
+        },
+    };
+
     return (
         <div className="product-details-page container">
+            <Helmet>
+                <title>{pageTitle}</title>
+                <meta name="description" content={metaDescription} />
+                {mainImageUrl && <meta property="og:image" content={mainImageUrl} />}
+                <script type="application/ld+json">
+                    {JSON.stringify(structuredData)}
+                </script>
+            </Helmet>
             <div className="pd-layout">
                 {/* Left: Thumbnails + Main image area (feature headline, image, notes) */}
                 <div className="pd-images">
@@ -291,6 +341,13 @@ const ProductDetails = () => {
                             className="pd-add-to-cart"
                             onClick={handleAddToCart}
                             disabled={product.stock <= 0}
+                            style={{
+                                transform: addedToCart ? 'scale(1.03)' : 'scale(1)',
+                                boxShadow: addedToCart
+                                    ? '0 14px 28px rgba(0,0,0,0.20)'
+                                    : '0 10px 20px rgba(0,0,0,0.12)',
+                                transition: 'transform 0.18s ease-out, box-shadow 0.18s ease-out',
+                            }}
                         >
                             {product.stock <= 0 ? 'Out of stock' : addedToCart ? '✓ Added to cart' : 'ADD TO CART'}
                         </button>
@@ -341,39 +398,80 @@ const ProductDetails = () => {
             {relatedProducts.length > 0 && (
                 <section className="pd-related">
                     <div className="pd-related-header">
-                        <h2 className="pd-related-title">Related products</h2>
-                        <p className="pd-related-subtitle">Customers also viewed these</p>
+                        <div>
+                            <h2 className="pd-related-title">Related products</h2>
+                            <p className="pd-related-subtitle">Customers also viewed these</p>
+                        </div>
                     </div>
-                    <div className="pd-related-grid">
-                        {relatedProducts.map((rp) => (
-                            <React.Suspense fallback={null} key={rp._id}>
-                                {/* Inline lightweight card to avoid circular imports */}
-                                <div className="pd-related-card">
-                                    <Link
-                                        to={`/product/${rp.slug}`}
-                                        style={{ textDecoration: 'none', color: 'inherit' }}
-                                    >
-                                        <div className="pd-related-image-wrap">
-                                            <img
-                                                src={
-                                                    rp.images?.[0] ||
-                                                    'https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=800&auto=format&fit=crop'
-                                                }
-                                                alt={rp.name}
-                                            />
-                                        </div>
-                                        <div className="pd-related-info">
-                                            <div className="pd-related-name">{rp.name}</div>
-                                            <div className="pd-related-price">
-                                                KSh {rp.price?.toLocaleString()}
-                                            </div>
-                                        </div>
-                                    </Link>
-                                </div>
-                            </React.Suspense>
+                    <div
+                        className="product-grid"
+                        style={{
+                            display: 'grid',
+                            gridTemplateColumns: 'repeat(auto-fit,minmax(160px,1fr))',
+                            gap: '12px',
+                        }}
+                    >
+                        {relatedProducts.slice(0, 4).map((rp) => (
+                            <div
+                                key={rp._id}
+                                style={{
+                                    maxWidth: 210,
+                                    margin: '0 auto',
+                                    transform: 'scale(0.9)',
+                                    transformOrigin: 'top center',
+                                }}
+                            >
+                                <ProductCard product={rp} />
+                            </div>
                         ))}
                     </div>
                 </section>
+            )}
+            {/* Lightweight add-to-cart toast */}
+            {addedToCart && (
+                <div
+                    style={{
+                        position: 'fixed',
+                        right: '24px',
+                        bottom: '24px',
+                        zIndex: 3000,
+                        backgroundColor: '#111827',
+                        color: '#f9fafb',
+                        padding: '14px 18px',
+                        borderRadius: '999px',
+                        boxShadow: '0 18px 40px rgba(0,0,0,0.28)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '10px',
+                        fontSize: '13px',
+                    }}
+                >
+                    <span
+                        style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            width: '22px',
+                            height: '22px',
+                            borderRadius: '999px',
+                            backgroundColor: '#22c55e',
+                            color: '#022c22',
+                            fontSize: '12px',
+                            fontWeight: 700,
+                        }}
+                    >
+                        ✓
+                    </span>
+                    <span>
+                        Added to cart.{' '}
+                        <Link
+                            to="/cart"
+                            style={{ color: '#fde68a', textDecoration: 'underline', textUnderlineOffset: '2px' }}
+                        >
+                            View cart
+                        </Link>
+                    </span>
+                </div>
             )}
         </div>
     );

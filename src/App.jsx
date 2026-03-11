@@ -31,11 +31,13 @@ import UserList from './pages/Admin/UserList'
 import UserEdit from './pages/Admin/UserEdit'
 import SiteSettings from './pages/Admin/SiteSettings'
 import Discounts from './pages/Admin/Discounts'
+import OrderDetailsAdmin from './pages/Admin/OrderDetailsAdmin'
 
 function App() {
   const [isCartOpen, setIsCartOpen] = useState(false);
   const location = useLocation();
   const isAdminRoute = location.pathname.startsWith('/admin');
+  const isAuthRoute = location.pathname === '/login' || location.pathname === '/register';
 
   // Always reset scroll position to top when navigating to a new route
   useEffect(() => {
@@ -44,7 +46,7 @@ function App() {
 
   return (
     <div className="app">
-      {!isAdminRoute && (
+      {!isAdminRoute && !isAuthRoute && (
         <Header isCartOpen={isCartOpen} setIsCartOpen={setIsCartOpen} />
       )}
       <main>
@@ -71,6 +73,7 @@ function App() {
             <Route element={<AdminLayout />}>
               <Route path="dashboard" element={<Dashboard />} />
               <Route path="orderlist" element={<OrderList />} />
+              <Route path="order/:id" element={<OrderDetailsAdmin />} />
               <Route path="userlist" element={<UserList />} />
               <Route path="user/:id/edit" element={<UserEdit />} />
               <Route path="productlist" element={<ProductList />} />
@@ -82,11 +85,11 @@ function App() {
           </Route>
         </Routes>
       </main>
-      {!isAdminRoute && <Footer />}
-      {!isAdminRoute && (
+      {!isAdminRoute && !isAuthRoute && <Footer />}
+      {!isAdminRoute && !isAuthRoute && (
         <CartDrawer isOpen={isCartOpen} onClose={() => setIsCartOpen(false)} />
       )}
-      {!isAdminRoute && (
+      {!isAdminRoute && !isAuthRoute && (
         <MobileBottomNav onCartOpen={() => setIsCartOpen(true)} />
       )}
     </div>

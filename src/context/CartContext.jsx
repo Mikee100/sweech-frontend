@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useAuth } from './AuthContext';
+import { apiFetch } from '../utils/apiClient';
 
 const CartContext = createContext();
 const MAX_PER_ITEM = 10;
@@ -16,13 +17,7 @@ export const CartProvider = ({ children }) => {
             if (!user) return;
 
             try {
-                const res = await fetch(`${import.meta.env.VITE_API_URL}/api/users/cart`, {
-                    credentials: 'include',
-                });
-
-                if (!res.ok) return;
-
-                const data = await res.json();
+                const data = await apiFetch(`${import.meta.env.VITE_API_URL}/api/users/cart`);
                 if (Array.isArray(data.items)) {
                     setCart(data.items);
                 }
@@ -47,12 +42,11 @@ export const CartProvider = ({ children }) => {
                     })),
                 };
 
-                await fetch(`${import.meta.env.VITE_API_URL}/api/users/cart`, {
+                await apiFetch(`${import.meta.env.VITE_API_URL}/api/users/cart`, {
                     method: 'PUT',
                     headers: {
                         'Content-Type': 'application/json',
                     },
-                    credentials: 'include',
                     body: JSON.stringify(payload),
                 });
             } catch {

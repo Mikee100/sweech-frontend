@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
+import { apiFetch } from '../utils/apiClient';
 import ProductCard from '../components/ProductCard';
 import { SHIPPING_ZONES } from '../constants/shippingZones';
 import ErrorBanner from '../components/ErrorBanner';
@@ -31,28 +32,16 @@ const Cart = () => {
         }
 
         try {
-            const token = localStorage.getItem('token');
-
-            const res = await fetch(`${import.meta.env.VITE_API_URL}/api/discounts/apply`, {
+            const data = await apiFetch(`${import.meta.env.VITE_API_URL}/api/discounts/apply`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    ...(token ? { Authorization: `Bearer ${token}` } : {}),
                 },
                 body: JSON.stringify({
                     code,
                     itemsTotal: cartTotal,
                 }),
             });
-
-            const data = await res.json();
-
-            if (!res.ok) {
-                const message = data?.message || 'Invalid coupon code. Please check and try again.';
-                setDiscount(0);
-                setCouponError(message);
-                return;
-            }
 
             const discountAmount = data?.discountAmount ?? 0;
             setDiscount(discountAmount);

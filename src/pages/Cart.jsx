@@ -19,9 +19,8 @@ const Cart = () => {
         return stored || SHIPPING_ZONES[0].id;
     });
 
-    // Simple sample coupon: SWECH10 = 10% off items subtotal
-    const handleApplyCoupon = () => {
-        const code = couponCode.trim().toUpperCase();
+    const handleApplyCoupon = async () => {
+        const code = couponCode.trim();
         setCouponError('');
         setCouponSuccess('');
 
@@ -31,15 +30,41 @@ const Cart = () => {
             return;
         }
 
-        if (code === 'SWECH10') {
-            const newDiscount = cartTotal * 0.1;
-            setDiscount(newDiscount);
-            const message = 'Coupon applied! You received 10% off your cart subtotal.';
+        try {
+            const token = localStorage.getItem('token');
+
+            const res = await fetch(`${import.meta.env.VITE_API_URL}/api/discounts/apply`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+                },
+                body: JSON.stringify({
+                    code,
+                    itemsTotal: cartTotal,
+                }),
+            });
+
+            const data = await res.json();
+
+            if (!res.ok) {
+                const message = data?.message || 'Invalid coupon code. Please check and try again.';
+                setDiscount(0);
+                setCouponError(message);
+                return;
+            }
+
+            const discountAmount = data?.discountAmount ?? 0;
+            setDiscount(discountAmount);
+
+            const message =
+                data?.message ||
+                `Coupon applied! You received a discount of KSh ${discountAmount.toLocaleString()}.`;
             setCouponSuccess(message);
-        } else {
-            const message = 'Invalid coupon code. Please check and try again.';
+        } catch (err) {
+            console.error('Error applying coupon', err);
             setDiscount(0);
-            setCouponError(message);
+            setCouponError('We could not apply this coupon right now. Please try again in a moment.');
         }
     };
 

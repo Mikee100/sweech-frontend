@@ -427,6 +427,21 @@ const OrderDetails = () => {
                                 <span style={{ color: '#6b7280' }}>Tax</span>
                                 <span>KSh {order.taxPrice.toLocaleString()}</span>
                             </div>
+                            {order.discountAmount > 0 && (
+                                <div
+                                    style={{
+                                        display: 'flex',
+                                        justifyContent: 'space-between',
+                                        color: '#16a34a',
+                                    }}
+                                >
+                                    <span>
+                                        Discount
+                                        {order.discountCode ? ` (${order.discountCode})` : ''}
+                                    </span>
+                                    <span>- KSh {order.discountAmount.toLocaleString()}</span>
+                                </div>
+                            )}
                             <div
                                 style={{
                                     display: 'flex',

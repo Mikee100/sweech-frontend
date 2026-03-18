@@ -72,8 +72,7 @@ const Cart = () => {
     useEffect(() => {
         const fetchRecommendations = async () => {
             try {
-                const res = await fetch(`${import.meta.env.VITE_API_URL}/api/products`);
-                const data = await res.json();
+const data = await apiFetch(`${import.meta.env.VITE_API_URL}/api/products`);
                 const cartIds = new Set(cart.map((item) => item._id));
                 const filtered = data.filter((p) => !cartIds.has(p._id));
                 setRecommendations(filtered.slice(0, 4));

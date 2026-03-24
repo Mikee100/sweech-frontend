@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
+import { apiFetch } from '../../utils/apiClient';
 
 const Dashboard = () => {
     const { user } = useAuth();
@@ -10,17 +11,10 @@ const Dashboard = () => {
     useEffect(() => {
         const fetchAnalytics = async () => {
             try {
-                const response = await fetch(`${import.meta.env.VITE_API_URL}/api/analytics/summary`, {
-                    credentials: 'include'
-                });
-                const data = await response.json();
-                if (response.ok) {
-                    setAnalytics(data);
-                } else {
-                    setError(data.message || 'Failed to fetch analytics');
-                }
+                const data = await apiFetch(`${import.meta.env.VITE_API_URL}/api/analytics/summary`);
+                setAnalytics(data);
             } catch (err) {
-                setError('Something went wrong. Could not load dashboard analytics.');
+                setError(err.message || 'Something went wrong. Could not load dashboard analytics.');
             } finally {
                 setLoading(false);
             }

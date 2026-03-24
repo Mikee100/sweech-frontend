@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { apiFetch } from '../utils/apiClient';
 
 const Contact = () => {
     const [form, setForm] = useState({
@@ -26,17 +27,11 @@ const Contact = () => {
 
         setSubmitting(true);
         try {
-            const res = await fetch(`${import.meta.env.VITE_API_URL}/api/contact`, {
+            await apiFetch(`${import.meta.env.VITE_API_URL}/api/contact`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(form),
             });
-
-            const data = await res.json();
-
-            if (!res.ok) {
-                throw new Error(data.message || 'Failed to send message');
-            }
 
             setStatus({ type: 'success', message: 'Thank you! Your message has been sent.' });
             setForm({ name: '', email: '', subject: '', message: '' });

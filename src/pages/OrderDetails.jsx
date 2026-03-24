@@ -9,7 +9,9 @@ const OrderDetails = () => {
     const { user } = useAuth();
     const [order, setOrder] = useState(null);
     const [loading, setLoading] = useState(true);
+    const [deliverLoading, setDeliverLoading] = useState(false);
     const [error, setError] = useState('');
+    const [success, setSuccess] = useState('');
 
     useEffect(() => {
         const fetchOrder = async () => {
@@ -42,6 +44,33 @@ const OrderDetails = () => {
             fetchOrder();
         }
     }, [id, user]);
+
+    const deliverHandler = async () => {
+        setDeliverLoading(true);
+        setError('');
+        try {
+            await apiFetch(`${import.meta.env.VITE_API_URL}/api/orders/${id}/deliver`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                credentials: 'include',
+            });
+            setSuccess('Order marked as delivered successfully!');
+            // Re-fetch order to update UI
+            const data = await apiFetch(`${import.meta.env.VITE_API_URL}/api/orders/${id}`, {
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                credentials: 'include',
+            });
+            setOrder(data);
+        } catch (err) {
+            setError(err instanceof ApiError ? err.message : 'Failed to update order status');
+        } finally {
+            setDeliverLoading(false);
+        }
+    };
 
     if (loading)
         return (
@@ -483,6 +512,35 @@ const OrderDetails = () => {
                                 </span>
                             </p>
                         </div>
+
+                        {user && user.isAdmin && !order.isDelivered && (
+                            <button
+                                onClick={deliverHandler}
+                                disabled={deliverLoading}
+                                style={{
+                                    width: '100%',
+                                    marginTop: '20px',
+                                    padding: '14px',
+                                    backgroundColor: '#111827',
+                                    color: 'white',
+                                    border: 'none',
+                                    borderRadius: '12px',
+                                    fontWeight: 'bold',
+                                    fontSize: '14px',
+                                    cursor: deliverLoading ? 'not-allowed' : 'pointer',
+                                    opacity: deliverLoading ? 0.7 : 1,
+                                    transition: 'all 0.2s',
+                                    boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
+                                }}
+                            >
+                                {deliverLoading ? 'Updating Status...' : 'Mark as Delivered'}
+                            </button>
+                        )}
+                        {success && (
+                            <p style={{ color: '#16a34a', fontSize: '13px', marginTop: '12px', textAlign: 'center', fontWeight: 500 }}>
+                                <i className="fas fa-check-circle"></i> {success}
+                            </p>
+                        )}
                     </div>
                 </div>
             </div>

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
+import { apiFetch } from '../../utils/apiClient';
 
 const ProductList = () => {
     const [products, setProducts] = useState([]);
@@ -17,13 +18,12 @@ const ProductList = () => {
 
     const fetchProducts = async () => {
         try {
-            const response = await fetch(`${import.meta.env.VITE_API_URL}/api/products`);
-            const data = await response.json();
+            const data = await apiFetch(`${import.meta.env.VITE_API_URL}/api/products`);
             setProducts(data);
             setSelectedProductIds([]);
             setLoading(false);
         } catch (err) {
-            setError('Failed to fetch products');
+            setError(err.message || 'Failed to fetch products');
             setLoading(false);
         }
     };
@@ -36,18 +36,12 @@ const ProductList = () => {
     const deleteHandler = async (id) => {
         if (window.confirm('Are you sure you want to delete this product?')) {
             try {
-                const response = await fetch(`${import.meta.env.VITE_API_URL}/api/products/${id}`, {
+                await apiFetch(`${import.meta.env.VITE_API_URL}/api/products/${id}`, {
                     method: 'DELETE',
-                    credentials: 'include',
                 });
-                if (response.ok) {
-                    fetchProducts();
-                } else {
-                    const data = await response.json();
-                    alert(data.message || 'Delete failed');
-                }
+                fetchProducts();
             } catch (err) {
-                alert('Something went wrong');
+                alert(err.message || 'Something went wrong');
             }
         }
     };
@@ -74,18 +68,13 @@ const ProductList = () => {
         }
         setAvailabilityUpdating(true);
         try {
-            const response = await fetch(`${import.meta.env.VITE_API_URL}/api/products/bulk/availability`, {
+            await apiFetch(`${import.meta.env.VITE_API_URL}/api/products/bulk/availability`, {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                credentials: 'include',
                 body: JSON.stringify({ productIds: selectedProductIds, isActive }),
             });
-            const data = await response.json();
-            if (!response.ok) {
-                throw new Error(data.message || 'Failed to update availability');
-            }
             fetchProducts();
         } catch (err) {
             alert(err.message || 'Failed to update availability');
@@ -117,22 +106,17 @@ const ProductList = () => {
 
         setBulkUpdating(true);
         try {
-            const response = await fetch(`${import.meta.env.VITE_API_URL}/api/products/bulk/price`, {
+            await apiFetch(`${import.meta.env.VITE_API_URL}/api/products/bulk/price`, {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                credentials: 'include',
                 body: JSON.stringify({
                     productIds: selectedProductIds,
                     mode: bulkPriceMode,
                     value,
                 }),
             });
-            const data = await response.json();
-            if (!response.ok) {
-                throw new Error(data.message || 'Failed to update prices');
-            }
             setBulkPricePercent('');
             fetchProducts();
         } catch (err) {

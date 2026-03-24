@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { useSiteConfig } from '../../context/SiteConfigContext';
+import { apiFetch } from '../../utils/apiClient';
 
 const emptySlide = () => ({
     title: '',
@@ -108,20 +109,13 @@ const SiteSettings = () => {
                 curatedCollections,
             };
 
-            const response = await fetch(`${import.meta.env.VITE_API_URL}/api/site-config`, {
+            const data = await apiFetch(`${import.meta.env.VITE_API_URL}/api/site-config`, {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                credentials: 'include',
                 body: JSON.stringify(body),
             });
-
-            const data = await response.json();
-
-            if (!response.ok) {
-                throw new Error(data.message || 'Failed to save settings');
-            }
 
             setConfig(data);
             setMessage('Settings updated successfully.');

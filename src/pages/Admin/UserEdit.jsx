@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
+import { apiFetch, ApiError } from '../../utils/apiClient';
 
 const ROLE_OPTIONS = [
     { value: 'CUSTOMER', label: 'Customer' },
@@ -32,23 +33,16 @@ const UserEdit = () => {
     useEffect(() => {
         const fetchUser = async () => {
             try {
-                const response = await fetch(`${import.meta.env.VITE_API_URL}/api/users/${id}`, {
-                    credentials: 'include'
-                });
-                const data = await response.json();
-                if (response.ok) {
-                    setName(data.name);
-                    setEmail(data.email);
-                    setIsAdmin(Boolean(data.isAdmin));
-                    const effectiveRole = data.role || (data.isAdmin ? 'MANAGER' : 'CUSTOMER');
-                    setRole(effectiveRole);
-                    setNotes(data.notes || '');
-                    setTagsText((data.tags || []).join(', '));
-                } else {
-                    setError(data.message || 'Failed to fetch user Details');
-                }
+                const data = await apiFetch(`${import.meta.env.VITE_API_URL}/api/users/${id}`);
+                setName(data.name);
+                setEmail(data.email);
+                setIsAdmin(Boolean(data.isAdmin));
+                const effectiveRole = data.role || (data.isAdmin ? 'MANAGER' : 'CUSTOMER');
+                setRole(effectiveRole);
+                setNotes(data.notes || '');
+                setTagsText((data.tags || []).join(', '));
             } catch (err) {
-                setError('Something went wrong. Could not load user.');
+                setError(err.message || 'Something went wrong. Could not load user.');
             } finally {
                 setLoading(false);
             }
@@ -66,17 +60,10 @@ const UserEdit = () => {
             setOrdersError('');
             try {
                 const params = new URLSearchParams({ email });
-                const response = await fetch(`${import.meta.env.VITE_API_URL}/api/orders?${params.toString()}`, {
-                    credentials: 'include',
-                });
-                const data = await response.json();
-                if (response.ok) {
-                    setOrders(data);
-                } else {
-                    setOrdersError(data.message || 'Failed to load orders for this user.');
-                }
+                const data = await apiFetch(`${import.meta.env.VITE_API_URL}/api/orders?${params.toString()}`);
+                setOrders(data);
             } catch (err) {
-                setOrdersError('Something went wrong while loading orders.');
+                setOrdersError(err.message || 'Something went wrong while loading orders.');
             } finally {
                 setOrdersLoading(false);
             }
@@ -104,23 +91,17 @@ const UserEdit = () => {
         }
 
         try {
-            const response = await fetch(`${import.meta.env.VITE_API_URL}/api/users/${id}`, {
+            await apiFetch(`${import.meta.env.VITE_API_URL}/api/users/${id}`, {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                credentials: 'include',
                 body: JSON.stringify({ name, email, isAdmin: nextIsAdmin, role, notes, tags })
             });
-            const data = await response.json();
 
-            if (response.ok) {
-                navigate('/admin/userlist');
-            } else {
-                setError(data.message || 'Failed to update user');
-            }
+            navigate('/admin/userlist');
         } catch (err) {
-            setError('Something went wrong while updating user.');
+            setError(err.message || 'Something went wrong while updating user.');
         } finally {
             setUpdating(false);
         }

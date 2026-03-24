@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
+import { apiFetch } from '../../utils/apiClient';
 
 const emptyDiscount = () => ({
     _id: null,
@@ -36,13 +37,7 @@ const Discounts = () => {
         setLoading(true);
         setError('');
         try {
-            const response = await fetch(`${import.meta.env.VITE_API_URL}/api/discounts`, {
-                credentials: 'include',
-            });
-            const data = await response.json();
-            if (!response.ok) {
-                throw new Error(data.message || 'Failed to load discount codes');
-            }
+            const data = await apiFetch(`${import.meta.env.VITE_API_URL}/api/discounts`);
             setDiscounts(data);
         } catch (err) {
             setError(err.message || 'Failed to load discount codes');
@@ -113,18 +108,13 @@ const Discounts = () => {
         setSavingId(editing._id || 'new');
         setError('');
         try {
-            const response = await fetch(url, {
+            await apiFetch(url, {
                 method,
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                credentials: 'include',
                 body: JSON.stringify(payload),
             });
-            const data = await response.json();
-            if (!response.ok) {
-                throw new Error(data.message || 'Failed to save discount code');
-            }
             setEditing(null);
             fetchDiscounts();
         } catch (err) {
@@ -138,14 +128,9 @@ const Discounts = () => {
         if (!window.confirm(`Delete discount code ${disc.code}?`)) return;
         if (!user) return;
         try {
-            const response = await fetch(`${import.meta.env.VITE_API_URL}/api/discounts/${disc._id}`, {
+            await apiFetch(`${import.meta.env.VITE_API_URL}/api/discounts/${disc._id}`, {
                 method: 'DELETE',
-                credentials: 'include',
             });
-            const data = await response.json();
-            if (!response.ok) {
-                throw new Error(data.message || 'Failed to delete discount code');
-            }
             fetchDiscounts();
         } catch (err) {
             setError(err.message || 'Failed to delete discount code');
@@ -212,22 +197,16 @@ const Discounts = () => {
 
         try {
             setTesting(true);
-            const response = await fetch(`${import.meta.env.VITE_API_URL}/api/discounts/apply`, {
+            const data = await apiFetch(`${import.meta.env.VITE_API_URL}/api/discounts/apply`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                credentials: 'include',
                 body: JSON.stringify({ code: sampleCode, itemsTotal }),
             });
-            const data = await response.json();
-            if (!response.ok) {
-                setSampleError(data.message || 'Code is not valid for this total.');
-                return;
-            }
             setSampleResult(data);
         } catch (err) {
-            setSampleError('Failed to test discount code.');
+            setSampleError(err.message || 'Failed to test discount code.');
         } finally {
             setTesting(false);
         }

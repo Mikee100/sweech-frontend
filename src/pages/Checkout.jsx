@@ -13,12 +13,12 @@ const Checkout = () => {
     const { config } = useSiteConfig();
     const navigate = useNavigate();
 
-    const [fullName, setFullName] = useState('');
-    const [phone, setPhone] = useState('');
-    const [address, setAddress] = useState('');
-    const [city, setCity] = useState('');
-    const [postalCode, setPostalCode] = useState('');
-    const [country, setCountry] = useState('Kenya');
+    const [fullName, setFullName] = useState(user?.name || '');
+    const [phone, setPhone] = useState(user?.phone || '');
+    const [address, setAddress] = useState(user?.address || '');
+    const [city, setCity] = useState(user?.city || '');
+    const [postalCode, setPostalCode] = useState(user?.postalCode || '');
+    const [country, setCountry] = useState(user?.country || 'Kenya');
     const [paymentMethod, setPaymentMethod] = useState('M-Pesa');
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');

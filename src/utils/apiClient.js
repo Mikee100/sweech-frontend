@@ -9,10 +9,17 @@ export class ApiError extends Error {
 }
 
 export const apiFetch = async (url, options = {}) => {
+    const token = localStorage.getItem('authToken');
+    const authHeader = token ? { 'Authorization': `Bearer ${token}` } : {};
+
     const finalOptions = {
         // Always send/receive cookies for cross-origin API calls
         credentials: 'include',
         ...options,
+        headers: {
+            ...authHeader,
+            ...options.headers,
+        },
     };
 
     let response;
@@ -25,22 +32,29 @@ export const apiFetch = async (url, options = {}) => {
     }
 
     let data = null;
+    let isJson = true;
     try {
-        data = await response.json();
+        const text = await response.text();
+        try {
+            data = JSON.parse(text);
+        } catch {
+            data = text;
+            isJson = false;
+        }
     } catch {
-        // Non‑JSON response; keep data as null
+        // Fallback if text() also fails
     }
 
     if (!response.ok) {
         const message =
-            data?.message ||
+            (isJson && data?.message) ||
             (response.status >= 500
                 ? 'We are having trouble on our side. Please try again in a moment.'
                 : 'We could not complete that action. Please review and try again.');
 
         throw new ApiError(message, {
             status: response.status,
-            code: data?.code,
+            code: isJson ? data?.code : undefined,
             details: data,
         });
     }

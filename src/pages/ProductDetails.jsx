@@ -4,6 +4,7 @@ import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
 import { useFavorites } from '../context/FavoritesContext';
 import { useAuth } from '../context/AuthContext';
+import { apiFetch } from '../utils/apiClient';
 import ProductDescriptionSection from '../components/ProductDescriptionSection';
 import ProductCard from '../components/ProductCard';
 
@@ -27,11 +28,7 @@ const ProductDetails = () => {
     useEffect(() => {
         const fetchProduct = async () => {
             try {
-                const response = await fetch(`${import.meta.env.VITE_API_URL}/api/products/${slug}`);
-                if (!response.ok) {
-                    throw new Error('Product not found');
-                }
-                const data = await response.json();
+                const data = await apiFetch(`${import.meta.env.VITE_API_URL}/api/products/${slug}`);
                 setProduct(data);
                 setMainImage(data.images?.[0] || '');
                 setLoading(false);
@@ -52,20 +49,18 @@ const ProductDetails = () => {
             try {
                 // Variants: same variantGroup, different _id
                 if (product.variantGroup) {
-                    const variantRes = await fetch(
-                        `${import.meta.env.VITE_API_URL}/api/products?variantGroup=${encodeURIComponent(
-                            product.variantGroup
-                        )}`
-                    );
-                    if (variantRes.ok) {
-                        const variantData = await variantRes.json();
+                    try {
+                        const variantData = await apiFetch(
+                            `${import.meta.env.VITE_API_URL}/api/products?variantGroup=${encodeURIComponent(
+                                product.variantGroup
+                            )}`
+                        );
                         const list = Array.isArray(variantData) ? variantData : variantData.products || [];
-                        // Only treat products with an explicit variantLabel as true variants
                         const siblings = list.filter(
                             (p) => p._id !== product._id && p.variantLabel
                         );
                         setVariantOptions(siblings);
-                    } else {
+                    } catch {
                         setVariantOptions([]);
                     }
                 } else {
@@ -77,14 +72,15 @@ const ProductDetails = () => {
                 if (product.category) params.append('category', product.category);
                 if (product.subCategory) params.append('subCategory', product.subCategory);
 
-                const relatedRes = await fetch(
-                    `${import.meta.env.VITE_API_URL}/api/products?${params.toString()}`
-                );
-                if (relatedRes.ok) {
-                    const relatedData = await relatedRes.json();
+                try {
+                    const relatedData = await apiFetch(
+                        `${import.meta.env.VITE_API_URL}/api/products?${params.toString()}`
+                    );
                     const list = Array.isArray(relatedData) ? relatedData : relatedData.products || [];
                     const filtered = list.filter((p) => p._id !== product._id);
                     setRelatedProducts(filtered.slice(0, 4));
+                } catch {
+                    // fail silently
                 }
             } catch {
                 // fail silently for extra data

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
+import { apiFetch } from '../../utils/apiClient';
 
 const OrderList = () => {
     const { user } = useAuth();
@@ -57,18 +58,11 @@ const OrderList = () => {
         setError('');
         try {
             const query = buildQueryString();
-            const response = await fetch(`${import.meta.env.VITE_API_URL}/api/orders${query}`, {
-                credentials: 'include'
-            });
-            const data = await response.json();
-            if (response.ok) {
-                setOrders(data);
-                setSelectedOrderIds([]);
-            } else {
-                setError(data.message || 'Failed to fetch orders');
-            }
+            const data = await apiFetch(`${import.meta.env.VITE_API_URL}/api/orders${query}`);
+            setOrders(data);
+            setSelectedOrderIds([]);
         } catch (err) {
-            setError('Something went wrong. Could not load orders.');
+            setError(err.message || 'Something went wrong. Could not load orders.');
         } finally {
             setLoading(false);
         }
@@ -83,21 +77,13 @@ const OrderList = () => {
 
     const handleStatusChange = async (orderId, newStatus) => {
         try {
-            const response = await fetch(`${import.meta.env.VITE_API_URL}/api/orders/${orderId}/status`, {
+            const updatedOrder = await apiFetch(`${import.meta.env.VITE_API_URL}/api/orders/${orderId}/status`, {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                credentials: 'include',
                 body: JSON.stringify({ status: newStatus }),
             });
-
-            if (!response.ok) {
-                const data = await response.json();
-                throw new Error(data.message || 'Failed to update status');
-            }
-
-            const updatedOrder = await response.json();
 
             setOrders((prev) =>
                 prev.map((order) => (order._id === orderId ? { ...order, ...updatedOrder } : order))
@@ -132,20 +118,13 @@ const OrderList = () => {
         setBulkUpdating(true);
         setError('');
         try {
-            const response = await fetch(`${import.meta.env.VITE_API_URL}/api/orders/bulk/status`, {
+            const data = await apiFetch(`${import.meta.env.VITE_API_URL}/api/orders/bulk/status`, {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                credentials: 'include',
                 body: JSON.stringify({ orderIds: selectedOrderIds, status: bulkStatus }),
             });
-
-            const data = await response.json();
-
-            if (!response.ok) {
-                throw new Error(data.message || 'Failed to bulk update orders');
-            }
 
             const updatedOrders = data.orders || [];
             setOrders((prev) =>

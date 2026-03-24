@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
+import { apiFetch } from '../../utils/apiClient';
 
 const OrderDetailsAdmin = () => {
     const { id } = useParams();
@@ -8,21 +9,33 @@ const OrderDetailsAdmin = () => {
     const [order, setOrder] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
+    const [updatingStatus, setUpdatingStatus] = useState(false);
+    const [status, setStatus] = useState('');
+    const [trackingNumber, setTrackingNumber] = useState('');
+    const [carrier, setCarrier] = useState('');
+    const [statusNote, setStatusNote] = useState('');
+
+    const statusOptions = [
+        { value: 'pending', label: 'Pending' },
+        { value: 'confirmed', label: 'Confirmed' },
+        { value: 'processing', label: 'Processing' },
+        { value: 'dispatched', label: 'Dispatched' },
+        { value: 'in_transit', label: 'In transit' },
+        { value: 'out_for_delivery', label: 'Out for delivery' },
+        { value: 'delivered', label: 'Delivered' },
+        { value: 'cancelled', label: 'Cancelled' },
+    ];
 
     useEffect(() => {
         const fetchOrder = async () => {
             try {
-                const response = await fetch(`${import.meta.env.VITE_API_URL}/api/orders/${id}`, {
-                    credentials: 'include'
-                });
-                const data = await response.json();
-                if (response.ok) {
-                    setOrder(data);
-                } else {
-                    setError(data.message || 'Failed to fetch order');
-                }
+                const data = await apiFetch(`${import.meta.env.VITE_API_URL}/api/orders/${id}`);
+                setOrder(data);
+                setStatus(data.status || 'pending');
+                setTrackingNumber(data.trackingNumber || '');
+                setCarrier(data.carrier || '');
             } catch (err) {
-                setError('Something went wrong');
+                setError(err.message || 'Something went wrong');
             } finally {
                 setLoading(false);
             }
@@ -32,6 +45,38 @@ const OrderDetailsAdmin = () => {
             fetchOrder();
         }
     }, [id, user]);
+
+    const handleUpdateStatus = async (e) => {
+        e.preventDefault();
+        setUpdatingStatus(true);
+        try {
+            const data = await apiFetch(`${import.meta.env.VITE_API_URL}/api/orders/${id}/status`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    status,
+                    trackingNumber,
+                    carrier,
+                    note: statusNote
+                }),
+            });
+            setOrder(data);
+            setStatusNote('');
+            alert('Order updated successfully');
+        } catch (err) {
+            alert(err.message || 'Failed to update order');
+        } finally {
+            setUpdatingStatus(false);
+        }
+    };
+
+    const copyToClipboard = (text, label) => {
+        navigator.clipboard.writeText(text).then(() => {
+            alert(`${label} copied to clipboard`);
+        });
+    };
 
     if (loading)
         return (
@@ -73,6 +118,14 @@ const OrderDetailsAdmin = () => {
                         &larr; Back to orders
                     </Link>
                     <span style={{ fontWeight: 'bold' }}>Order #{order._id}</span>
+                    <button
+                        type="button"
+                        onClick={() => copyToClipboard(order._id, 'Order ID')}
+                        title="Copy ID"
+                        style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#6b7280', fontSize: '12px' }}
+                    >
+                        <i className="far fa-copy"></i>
+                    </button>
                 </div>
                 <button
                     type="button"
@@ -110,6 +163,14 @@ const OrderDetailsAdmin = () => {
                             <span>
                                 Tracking:&nbsp;
                                 <strong>{order.trackingNumber}</strong>
+                                <button
+                                    type="button"
+                                    onClick={() => copyToClipboard(order.trackingNumber, 'Tracking Number')}
+                                    title="Copy Tracking Number"
+                                    style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#6b7280', fontSize: '10px', marginLeft: '4px' }}
+                                >
+                                    <i className="far fa-copy"></i>
+                                </button>
                                 {order.carrier && (
                                     <>
                                         {' '}via <strong>{order.carrier}</strong>
@@ -190,6 +251,7 @@ const OrderDetailsAdmin = () => {
                         <h3 style={{ fontSize: '16px', marginBottom: '16px', borderBottom: '1px solid #f3f4f6', paddingBottom: '10px' }}>Customer & Delivery</h3>
                         <p style={{ margin: '0 0 5px 0', fontSize: '14px' }}><strong>Name:</strong> {order.user.name}</p>
                         <p style={{ margin: '0 0 5px 0', fontSize: '14px' }}><strong>Email:</strong> {order.user.email}</p>
+                        <p style={{ margin: '0 0 5px 0', fontSize: '14px' }}><strong>Phone:</strong> {order.user.phone || 'N/A'}</p>
                         <p style={{ margin: '12px 0 5px 0', fontSize: '14px' }}><strong>Shipping Address:</strong></p>
                         <p style={{ margin: 0, color: '#666', fontSize: '14px' }}>
                             {order.shippingAddress.address}, {order.shippingAddress.city}<br />
@@ -204,14 +266,17 @@ const OrderDetailsAdmin = () => {
                     <div style={{ backgroundColor: 'white', padding: '20px', borderRadius: '10px', boxShadow: '0 4px 10px rgba(0,0,0,0.03)' }}>
                         <h3 style={{ fontSize: '16px', marginBottom: '16px', borderBottom: '1px solid #f3f4f6', paddingBottom: '10px' }}>Order Items</h3>
                         {order.orderItems.map((item, index) => (
-                            <div
+                            <Link
                                 key={index}
+                                to={`/admin/product/${item.product}/edit`}
                                 style={{
                                     display: 'flex',
                                     gap: '16px',
                                     marginBottom: '16px',
                                     paddingBottom: '16px',
                                     borderBottom: index === order.orderItems.length - 1 ? 'none' : '1px solid #f3f4f6',
+                                    textDecoration: 'none',
+                                    color: 'inherit'
                                 }}
                             >
                                 <img
@@ -226,12 +291,103 @@ const OrderDetailsAdmin = () => {
                                         <strong>KSh {(item.qty * item.price).toLocaleString()}</strong>
                                     </p>
                                 </div>
-                            </div>
+                            </Link>
                         ))}
                     </div>
+
+                    {order.statusHistory && order.statusHistory.length > 0 && (
+                        <div style={{ backgroundColor: 'white', padding: '20px', borderRadius: '10px', boxShadow: '0 4px 10px rgba(0,0,0,0.03)', marginTop: '20px' }}>
+                            <h3 style={{ fontSize: '16px', marginBottom: '16px', borderBottom: '1px solid #f3f4f6', paddingBottom: '10px' }}>Status History</h3>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                                {order.statusHistory.slice().reverse().map((history, idx) => (
+                                    <div key={idx} style={{ display: 'flex', gap: '12px', fontSize: '13px' }}>
+                                        <div style={{ minWidth: '120px', color: '#6b7280' }}>
+                                            {new Date(history.updatedAt).toLocaleString()}
+                                        </div>
+                                        <div style={{ flex: 1 }}>
+                                            <span style={{ fontWeight: 600, textTransform: 'capitalize', color: '#111827' }}>
+                                                {history.status.replace(/_/g, ' ')}
+                                            </span>
+                                            {history.note && (
+                                                <p style={{ margin: '4px 0 0 0', color: '#4b5563', fontStyle: 'italic' }}>
+                                                    "{history.note}"
+                                                </p>
+                                            )}
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
                 </div>
 
                 <div>
+                    <div style={{ backgroundColor: 'white', padding: '20px', borderRadius: '10px', boxShadow: '0 4px 10px rgba(0,0,0,0.03)', marginBottom: '20px' }}>
+                        <h3 style={{ fontSize: '16px', marginBottom: '16px', borderBottom: '1px solid #f3f4f6', paddingBottom: '10px' }}>Update Status & Tracking</h3>
+                        <form onSubmit={handleUpdateStatus} style={{ display: 'grid', gap: '12px' }}>
+                            <div>
+                                <label style={{ display: 'block', fontSize: '12px', color: '#6b7280', marginBottom: '4px' }}>Order Status</label>
+                                <select
+                                    value={status}
+                                    onChange={(e) => setStatus(e.target.value)}
+                                    style={{ width: '100%', padding: '8px 10px', borderRadius: '8px', border: '1px solid #e5e7eb', fontSize: '13px' }}
+                                >
+                                    {statusOptions.map((opt) => (
+                                        <option key={opt.value} value={opt.value}>{opt.label}</option>
+                                    ))}
+                                </select>
+                            </div>
+                            <div>
+                                <label style={{ display: 'block', fontSize: '12px', color: '#6b7280', marginBottom: '4px' }}>Tracking Number</label>
+                                <input
+                                    type="text"
+                                    value={trackingNumber}
+                                    onChange={(e) => setTrackingNumber(e.target.value)}
+                                    placeholder="Enter tracking number"
+                                    style={{ width: '100%', padding: '8px 10px', borderRadius: '8px', border: '1px solid #e5e7eb', fontSize: '13px' }}
+                                />
+                            </div>
+                            <div>
+                                <label style={{ display: 'block', fontSize: '12px', color: '#6b7280', marginBottom: '4px' }}>Carrier</label>
+                                <input
+                                    type="text"
+                                    value={carrier}
+                                    onChange={(e) => setCarrier(e.target.value)}
+                                    placeholder="e.g. Fedex, DHL, Speedaf"
+                                    style={{ width: '100%', padding: '8px 10px', borderRadius: '8px', border: '1px solid #e5e7eb', fontSize: '13px' }}
+                                />
+                            </div>
+                            <div>
+                                <label style={{ display: 'block', fontSize: '12px', color: '#6b7280', marginBottom: '4px' }}>Note (optional)</label>
+                                <textarea
+                                    value={statusNote}
+                                    onChange={(e) => setStatusNote(e.target.value)}
+                                    placeholder="Reason for change or update note"
+                                    style={{ width: '100%', padding: '8px 10px', borderRadius: '8px', border: '1px solid #e5e7eb', fontSize: '13px', minHeight: '60px', resize: 'vertical' }}
+                                />
+                            </div>
+                            <button
+                                type="submit"
+                                disabled={updatingStatus}
+                                style={{
+                                    width: '100%',
+                                    padding: '10px',
+                                    borderRadius: '8px',
+                                    border: 'none',
+                                    backgroundColor: '#111827',
+                                    color: 'white',
+                                    fontSize: '13px',
+                                    fontWeight: 600,
+                                    cursor: updatingStatus ? 'not-allowed' : 'pointer',
+                                    transition: 'background-color 0.2s',
+                                    marginTop: '8px'
+                                }}
+                            >
+                                {updatingStatus ? 'Updating...' : 'Save Changes'}
+                            </button>
+                        </form>
+                    </div>
+
                     <div style={{ backgroundColor: 'white', padding: '20px', borderRadius: '10px', boxShadow: '0 4px 10px rgba(0,0,0,0.03)', position: 'sticky', top: '80px' }}>
                         <h3 style={{ fontSize: '16px', marginBottom: '16px', borderBottom: '1px solid #f3f4f6', paddingBottom: '10px' }}>Order Summary</h3>
                         <div style={{ display: 'grid', gap: '10px', fontSize: '14px' }}>
@@ -247,6 +403,12 @@ const OrderDetailsAdmin = () => {
                                 <span style={{ color: '#6b7280' }}>Tax:</span>
                                 <span>KSh {order.taxPrice.toLocaleString()}</span>
                             </div>
+                            {order.discountAmount > 0 && (
+                                <div style={{ display: 'flex', justifyContent: 'space-between', color: '#16a34a' }}>
+                                    <span style={{ color: '#16a34a' }}>Discount{order.discountCode ? ` (${order.discountCode})` : ''}:</span>
+                                    <span>-KSh {order.discountAmount.toLocaleString()}</span>
+                                </div>
+                            )}
                             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '18px', fontWeight: 'bold', color: '#E41E26', borderTop: '1px solid #f3f4f6', paddingTop: '12px' }}>
                                 <span>Total:</span>
                                 <span>KSh {order.totalPrice.toLocaleString()}</span>

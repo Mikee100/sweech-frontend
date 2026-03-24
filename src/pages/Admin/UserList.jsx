@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
+import { apiFetch } from '../../utils/apiClient';
 
 const UserList = () => {
     const { user } = useAuth();
@@ -13,17 +14,10 @@ const UserList = () => {
     useEffect(() => {
         const fetchUsers = async () => {
             try {
-                const response = await fetch(`${import.meta.env.VITE_API_URL}/api/users`, {
-                    credentials: 'include'
-                });
-                const data = await response.json();
-                if (response.ok) {
-                    setUsers(data);
-                } else {
-                    setError(data.message || 'Failed to fetch users');
-                }
+                const data = await apiFetch(`${import.meta.env.VITE_API_URL}/api/users`);
+                setUsers(data);
             } catch (err) {
-                setError('Something went wrong. Could not load users.');
+                setError(err.message || 'Something went wrong. Could not load users.');
             } finally {
                 setLoading(false);
             }
@@ -37,18 +31,12 @@ const UserList = () => {
     const deleteHandler = async (id) => {
         if (window.confirm('Are you sure you want to delete this user?')) {
             try {
-                const response = await fetch(`${import.meta.env.VITE_API_URL}/api/users/${id}`, {
+                await apiFetch(`${import.meta.env.VITE_API_URL}/api/users/${id}`, {
                     method: 'DELETE',
-                    credentials: 'include'
                 });
-                if (response.ok) {
-                    setUsers(users.filter(u => u._id !== id));
-                } else {
-                    const data = await response.json();
-                    alert(data.message || 'Failed to delete user');
-                }
+                setUsers(users.filter(u => u._id !== id));
             } catch (err) {
-                alert('Something went wrong while deleting user.');
+                alert(err.message || 'Something went wrong while deleting user.');
             }
         }
     };

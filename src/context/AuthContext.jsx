@@ -35,6 +35,9 @@ export const AuthProvider = ({ children }) => {
             });
 
             setUser(data);
+            if (data.token) {
+                localStorage.setItem('authToken', data.token);
+            }
             return data;
         } catch (err) {
             if (err instanceof ApiError) {
@@ -61,6 +64,9 @@ export const AuthProvider = ({ children }) => {
             });
 
             setUser(data);
+            if (data.token) {
+                localStorage.setItem('authToken', data.token);
+            }
             return data;
         } catch (err) {
             if (err instanceof ApiError) {
@@ -79,6 +85,7 @@ export const AuthProvider = ({ children }) => {
             // Ignore logout failures on client
         } finally {
             setUser(null);
+            localStorage.removeItem('authToken');
         }
     };
 
@@ -97,6 +104,9 @@ export const AuthProvider = ({ children }) => {
             });
 
             setUser(data);
+            if (data.token) {
+                localStorage.setItem('authToken', data.token);
+            }
             return data;
         } catch (err) {
             if (err instanceof ApiError) {

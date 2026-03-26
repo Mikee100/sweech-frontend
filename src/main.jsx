@@ -9,20 +9,24 @@ import { SiteConfigProvider } from './context/SiteConfigContext.jsx'
 import './index.css'
 import App from './App.jsx'
 
+import { GoogleOAuthProvider } from '@react-oauth/google'
+
 createRoot(document.getElementById('root')).render(
   <StrictMode>
     <BrowserRouter>
-      <AuthProvider>
-        <FavoritesProvider>
-          <CartProvider>
-            <SiteConfigProvider>
-              <HelmetProvider>
-                <App />
-              </HelmetProvider>
-            </SiteConfigProvider>
-          </CartProvider>
-        </FavoritesProvider>
-      </AuthProvider>
+      <GoogleOAuthProvider clientId={import.meta.env.VITE_GOOGLE_CLIENT_ID}>
+        <AuthProvider>
+          <FavoritesProvider>
+            <CartProvider>
+              <SiteConfigProvider>
+                <HelmetProvider>
+                  <App />
+                </HelmetProvider>
+              </SiteConfigProvider>
+            </CartProvider>
+          </FavoritesProvider>
+        </AuthProvider>
+      </GoogleOAuthProvider>
     </BrowserRouter>
   </StrictMode>,
 )

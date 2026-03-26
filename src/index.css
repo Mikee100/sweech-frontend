@@ -29,7 +29,14 @@ body {
   line-height: 1.6;
   background-color: var(--white);
   overflow-x: hidden;
+}
+
+.app {
   padding-top: 96px;
+}
+
+.auth-layout, .admin-layout {
+  padding-top: 0 !important;
 }
 
 main {

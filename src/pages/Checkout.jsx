@@ -104,7 +104,8 @@ const Checkout = () => {
             taxPrice,
             totalPrice,
             discountCode: discountAmount > 0 ? discountCode.trim() || null : null,
-            discountAmount
+            discountAmount,
+            shippingZoneId: selectedZoneId
         };
 
         try {

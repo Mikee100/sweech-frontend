@@ -21,6 +21,11 @@ import Delivery from './pages/Delivery'
 import Returns from './pages/Returns'
 import Faq from './pages/Faq'
 import CustomerSupport from './pages/CustomerSupport'
+import CompleteProfile from './pages/CompleteProfile'
+import VerifyEmail from './pages/VerifyEmail'
+import ForgotPassword from './pages/ForgotPassword'
+import ResetPassword from './pages/ResetPassword'
+import ErrorBoundary from './components/ErrorBoundary'
 import AdminRoute from './components/AdminRoute'
 import AdminLayout from './components/AdminLayout'
 import ProductList from './pages/Admin/ProductList'
@@ -37,7 +42,13 @@ function App() {
   const [isCartOpen, setIsCartOpen] = useState(false);
   const location = useLocation();
   const isAdminRoute = location.pathname.startsWith('/admin');
-  const isAuthRoute = location.pathname === '/login' || location.pathname === '/register';
+  const isAuthRoute =
+    location.pathname === '/login' ||
+    location.pathname === '/register' ||
+    location.pathname === '/complete-profile' ||
+    location.pathname === '/forgot-password' ||
+    location.pathname.startsWith('/reset-password') ||
+    location.pathname.startsWith('/verify');
 
   // Always reset scroll position to top when navigating to a new route
   useEffect(() => {
@@ -45,54 +56,60 @@ function App() {
   }, [location.pathname, location.search]);
 
   return (
-    <div className="app">
-      {!isAdminRoute && !isAuthRoute && (
-        <Header isCartOpen={isCartOpen} setIsCartOpen={setIsCartOpen} />
-      )}
-      <main>
-        <Routes>
-          <Route path="/" element={<Home />} />
-          <Route path="/cart" element={<Cart />} />
-          <Route path="/product/:slug" element={<ProductDetails />} />
-          <Route path="/login" element={<Login />} />
-          <Route path="/register" element={<Register />} />
-          <Route path="/checkout" element={<Checkout />} />
-          <Route path="/order/:id" element={<OrderDetails />} />
-          <Route path="/profile" element={<Profile />} />
-          <Route path="/orders" element={<MyOrders />} />
-          <Route path="/favourites" element={<Favourites />} />
-          <Route path="/category/:categoryName" element={<Category />} />
-          <Route path="/search" element={<Search />} />
-          <Route path="/contact" element={<Contact />} />
-          <Route path="/delivery" element={<Delivery />} />
-          <Route path="/returns" element={<Returns />} />
-          <Route path="/faq" element={<Faq />} />
-          <Route path="/customer-support" element={<CustomerSupport />} />
+    <ErrorBoundary>
+      <div className={`app ${isAuthRoute ? 'auth-layout' : ''} ${isAdminRoute ? 'admin-layout' : ''}`}>
+        {!isAdminRoute && !isAuthRoute && (
+          <Header isCartOpen={isCartOpen} setIsCartOpen={setIsCartOpen} />
+        )}
+        <main>
+          <Routes>
+            <Route path="/" element={<Home />} />
+            <Route path="/cart" element={<Cart />} />
+            <Route path="/product/:slug" element={<ProductDetails />} />
+            <Route path="/login" element={<Login />} />
+            <Route path="/register" element={<Register />} />
+            <Route path="/complete-profile" element={<CompleteProfile />} />
+            <Route path="/verify/:token" element={<VerifyEmail />} />
+            <Route path="/forgot-password" element={<ForgotPassword />} />
+            <Route path="/reset-password/:token" element={<ResetPassword />} />
+            <Route path="/checkout" element={<Checkout />} />
+            <Route path="/order/:id" element={<OrderDetails />} />
+            <Route path="/profile" element={<Profile />} />
+            <Route path="/orders" element={<MyOrders />} />
+            <Route path="/favourites" element={<Favourites />} />
+            <Route path="/category/:categoryName" element={<Category />} />
+            <Route path="/search" element={<Search />} />
+            <Route path="/contact" element={<Contact />} />
+            <Route path="/delivery" element={<Delivery />} />
+            <Route path="/returns" element={<Returns />} />
+            <Route path="/faq" element={<Faq />} />
+            <Route path="/customer-support" element={<CustomerSupport />} />
 
-          <Route path="/admin" element={<AdminRoute />}>
-            <Route element={<AdminLayout />}>
-              <Route path="dashboard" element={<Dashboard />} />
-              <Route path="orderlist" element={<OrderList />} />
-              <Route path="order/:id" element={<OrderDetailsAdmin />} />
-              <Route path="userlist" element={<UserList />} />
-              <Route path="user/:id/edit" element={<UserEdit />} />
-              <Route path="productlist" element={<ProductList />} />
-              <Route path="product/create" element={<ProductEdit />} />
-              <Route path="product/:id/edit" element={<ProductEdit />} />
-              <Route path="settings" element={<SiteSettings />} />
-              <Route path="discounts" element={<Discounts />} />
+            <Route path="/admin" element={<AdminRoute />}>
+              <Route element={<AdminLayout />}>
+                <Route path="dashboard" element={<Dashboard />} />
+                <Route path="orderlist" element={<OrderList />} />
+                <Route path="order/:id" element={<OrderDetailsAdmin />} />
+                <Route path="userlist" element={<UserList />} />
+                <Route path="user/:id/edit" element={<UserEdit />} />
+                <Route path="productlist" element={<ProductList />} />
+                <Route path="product/create" element={<ProductEdit />} />
+                <Route path="product/:id/edit" element={<ProductEdit />} />
+                <Route path="settings" element={<SiteSettings />} />
+                <Route path="discounts" element={<Discounts />} />
+              </Route>
             </Route>
-          </Route>
-        </Routes>
-      </main>
-      {!isAdminRoute && !isAuthRoute && <Footer />}
-      {!isAdminRoute && !isAuthRoute && (
-        <CartDrawer isOpen={isCartOpen} onClose={() => setIsCartOpen(false)} />
-      )}
-      {!isAdminRoute && !isAuthRoute && (
-        <MobileBottomNav onCartOpen={() => setIsCartOpen(true)} />
-      )}
-    </div>
+          </Routes>
+        </main>
+        {!isAdminRoute && !isAuthRoute && <Footer />}
+        {!isAdminRoute && !isAuthRoute && (
+          <CartDrawer isOpen={isCartOpen} onClose={() => setIsCartOpen(false)} />
+        )}
+        {!isAdminRoute && !isAuthRoute && (
+          <MobileBottomNav onCartOpen={() => setIsCartOpen(true)} />
+        )}
+      </div>
+    </ErrorBoundary>
   )
 }
 

@@ -37,6 +37,7 @@ import UserEdit from './pages/Admin/UserEdit'
 import SiteSettings from './pages/Admin/SiteSettings'
 import Discounts from './pages/Admin/Discounts'
 import OrderDetailsAdmin from './pages/Admin/OrderDetailsAdmin'
+import AdminCategoriesBrands from './pages/Admin/AdminCategoriesBrands'
 
 function App() {
   const [isCartOpen, setIsCartOpen] = useState(false);
@@ -97,6 +98,7 @@ function App() {
                 <Route path="product/:id/edit" element={<ProductEdit />} />
                 <Route path="settings" element={<SiteSettings />} />
                 <Route path="discounts" element={<Discounts />} />
+                <Route path="categories-brands" element={<AdminCategoriesBrands />} />
               </Route>
             </Route>
           </Routes>

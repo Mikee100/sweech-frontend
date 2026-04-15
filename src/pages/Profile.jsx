@@ -6,6 +6,22 @@ const Profile = () => {
     const { user, updateProfile } = useAuth();
     const navigate = useNavigate();
 
+
+    // All hooks must be called unconditionally
+    const [name, setName] = useState(user?.name || '');
+    const [email, setEmail] = useState(user?.email || '');
+    const [phone, setPhone] = useState(user?.phone || '');
+    const [address, setAddress] = useState(user?.address || '');
+    const [city, setCity] = useState(user?.city || '');
+    const [postalCode, setPostalCode] = useState(user?.postalCode || '');
+    const [password, setPassword] = useState('');
+    const [confirmPassword, setConfirmPassword] = useState('');
+    const [loading, setLoading] = useState(false);
+    const [status, setStatus] = useState({ type: '', message: '' });
+
+    const firstName = user?.name ? user.name.split(' ')[0] : 'there';
+    const roleLabel = user?.role ? user.role : 'Customer';
+
     useEffect(() => {
         if (!user) {
             navigate('/login?redirect=/profile');
@@ -15,20 +31,6 @@ const Profile = () => {
     if (!user) {
         return null;
     }
-
-    const [name, setName] = useState(user.name || '');
-    const [email, setEmail] = useState(user.email || '');
-    const [phone, setPhone] = useState(user.phone || '');
-    const [address, setAddress] = useState(user.address || '');
-    const [city, setCity] = useState(user.city || '');
-    const [postalCode, setPostalCode] = useState(user.postalCode || '');
-    const [password, setPassword] = useState('');
-    const [confirmPassword, setConfirmPassword] = useState('');
-    const [loading, setLoading] = useState(false);
-    const [status, setStatus] = useState({ type: '', message: '' });
-
-    const firstName = user.name ? user.name.split(' ')[0] : 'there';
-    const roleLabel = user.role ? user.role : 'Customer';
 
     const handleSubmit = async (e) => {
         e.preventDefault();

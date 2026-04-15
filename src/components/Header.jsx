@@ -5,82 +5,11 @@ import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
 import { useFavorites } from '../context/FavoritesContext';
 import { useSiteConfig } from '../context/SiteConfigContext';
+import { apiFetch } from '../utils/apiClient';
 
-const BRANDS = [
-    'Anker',
-    'Baseus',
-    'Belkin',
-    'Bluetti',
-    'DJI',
-    'EcoFlow',
-    'Eufy by Anker',
-    'JBL',
-    'Logitech',
-    'Samsung',
-    'Sandisk',
-    'Soundcore by Anker',
-    'TP Link',
-];
-
-// Sweech-style mega menu sections for SHOP
-const SHOP_MEGA_SECTIONS = [
-    {
-        title: 'Tech & Gadgets',
-        items: [
-            { label: 'Cables', slug: 'cables' },
-            { label: 'Chargers', slug: 'chargers' },
-            { label: 'Car Chargers and Accessories', slug: 'car-chargers-accessories' },
-            { label: 'Camera and Photo', slug: 'camera-photo' },
-            { label: 'Camera Drones', slug: 'camera-drones' },
-            { label: 'Phone and Computer Accessories', slug: 'phone-computer-accessories' },
-            { label: 'Data Hubs and Adaptors', slug: 'data-hubs-adaptors' },
-            { label: 'Laptop Bags, Cases & Sleeves', slug: 'laptop-bags-cases-sleeves' },
-            { label: 'Keyboards and Mice', slug: 'keyboards-mice' },
-            { label: 'Monitors and Displays', slug: 'monitors-displays' },
-            { label: 'Routers and Range Extenders', slug: 'routers-range-extenders' },
-            { label: 'Smart Watches & Activity Trackers', slug: 'smart-watches' },
-        ],
-    },
-    {
-        title: 'Audio',
-        items: [
-            { label: 'Bluetooth Speakers', slug: 'bluetooth-speakers' },
-            { label: 'Earphones', slug: 'earphones' },
-            { label: 'Headphones', slug: 'headphones' },
-            { label: 'Headsets', slug: 'headsets' },
-        ],
-    },
-    {
-        title: 'Portable Power and Back-up',
-        items: [
-            { label: 'Power Banks', slug: 'power-banks' },
-            { label: 'Power Stations', slug: 'power-stations' },
-            { label: 'Solar Panels', slug: 'solar-panels' },
-            { label: 'EcoFlow Extra Batteries', slug: 'ecoflow-extra-batteries' },
-            { label: 'EcoFlow Accessories', slug: 'ecoflow-accessories' },
-            { label: 'Power Strips & Surge Protection', slug: 'power-strips-surge-protection' },
-        ],
-    },
-    {
-        title: 'Home & Living',
-        items: [
-            { label: 'Electric Scooters', slug: 'electric-scooters' },
-            { label: 'Home Electronics & Appliances', slug: 'home-electronics-appliances' },
-            { label: 'Security and Surveillance', slug: 'security-surveillance' },
-            { label: 'Smart Home', slug: 'smart-home' },
-            { label: 'Travel and Outdoor', slug: 'travel-outdoor' },
-        ],
-    },
-    {
-        title: 'Data & Media Storage',
-        items: [
-            { label: 'External Hard Drives', slug: 'external-hard-drives' },
-            { label: 'External SSDs', slug: 'external-ssds' },
-            { label: 'Memory Cards', slug: 'memory-cards' },
-            { label: 'USB Flash Drives', slug: 'usb-flash-drives' },
-        ],
-    },
-];
+// Dynamic constants initialized as empty arrays
+let BRANDS = [];
+let SHOP_MEGA_SECTIONS = [];
 
 const Header = ({ isCartOpen, setIsCartOpen }) => {
     const { cartCount } = useCart();
@@ -94,6 +23,38 @@ const Header = ({ isCartOpen, setIsCartOpen }) => {
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const [searchKeyword, setSearchKeyword] = useState('');
     const [drawerSearch, setDrawerSearch] = useState('');
+    const [dynamicBrands, setDynamicBrands] = useState([]);
+    const [dynamicCategories, setDynamicCategories] = useState([]);
+
+    useEffect(() => {
+        const fetchNavData = async () => {
+            try {
+                const [brandsRes, catRes] = await Promise.all([
+                    apiFetch(`${import.meta.env.VITE_API_URL}/api/brands`),
+                    apiFetch(`${import.meta.env.VITE_API_URL}/api/categories`),
+                ]);
+                
+                // Set brands (limit or slice if needed, but here we take all)
+                setDynamicBrands(Array.isArray(brandsRes.data) ? brandsRes.data : brandsRes);
+                
+                // Map categories to SHOP_MEGA_SECTIONS structure
+                const mappedCats = (Array.isArray(catRes.data) ? catRes.data : catRes).map(cat => ({
+                    title: cat.name,
+                    items: (cat.subCategories || []).map(sub => ({
+                        label: sub.name,
+                        slug: sub.name.toLowerCase().replace(/ & /g, '-').replace(/ /g, '-')
+                    }))
+                }));
+                setDynamicCategories(mappedCats);
+            } catch (err) {
+                console.error('Failed to fetch navigation data:', err);
+            }
+        };
+        fetchNavData();
+    }, []);
+
+    // Helper for easier access
+    const BRANDS_LIST = dynamicBrands.map(b => typeof b === 'string' ? b : b.name);
 
     useEffect(() => {
         if (isModalOpen || isMobileMenuOpen || isCartOpen) {
@@ -245,7 +206,7 @@ const Header = ({ isCartOpen, setIsCartOpen }) => {
                                     </button>
                                     <div className="shop-mega">
                                         <div className="shop-mega-inner">
-                                            {SHOP_MEGA_SECTIONS.map((section) => (
+                                            {dynamicCategories.map((section) => (
                                                 <div key={section.title} className="shop-mega-column">
                                                     <h4 className="shop-mega-title">{section.title}</h4>
                                                     {section.items.map((item) => (
@@ -270,7 +231,7 @@ const Header = ({ isCartOpen, setIsCartOpen }) => {
                                     </button>
                                     <div className="brand-mega">
                                         <div className="brand-mega-inner">
-                                            {BRANDS.map((brand) => (
+                                            {BRANDS_LIST.map((brand) => (
                                                 <button
                                                     key={brand}
                                                     type="button"
@@ -481,7 +442,7 @@ const Header = ({ isCartOpen, setIsCartOpen }) => {
                                     Shop by brand
                                 </span>
                             </li>
-                            {BRANDS.map((brand) => (
+                            {BRANDS_LIST.map((brand) => (
                                 <li key={brand}>
                                     <button
                                         onClick={() => {

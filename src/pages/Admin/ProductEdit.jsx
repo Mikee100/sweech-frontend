@@ -2,7 +2,6 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { apiFetch, ApiError } from '../../utils/apiClient';
-import { CATEGORIES } from '../../constants/categories';
 
 const toList = (value) => {
     if (!value) return [];
@@ -46,6 +45,8 @@ const ProductEdit = () => {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
     const [uploading, setUploading] = useState(false);
+    const [availableCategories, setAvailableCategories] = useState({});
+    const [availableBrands, setAvailableBrands] = useState([]);
     
     // UI State
     const [showAdvanced, setShowAdvanced] = useState(false);
@@ -61,8 +62,32 @@ const ProductEdit = () => {
 
     const subCategoryOptions = useMemo(() => {
         if (!category) return [];
-        return CATEGORIES?.[category] || [];
-    }, [category]);
+        return availableCategories[category] || [];
+    }, [category, availableCategories]);
+
+    useEffect(() => {
+        const fetchFormData = async () => {
+            try {
+                const [catRes, brandRes] = await Promise.all([
+                    apiFetch(`${import.meta.env.VITE_API_URL}/api/categories`),
+                    apiFetch(`${import.meta.env.VITE_API_URL}/api/brands`),
+                ]);
+                
+                const cats = Array.isArray(catRes.data) ? catRes.data : catRes;
+                const formattedCats = {};
+                cats.forEach(c => {
+                    formattedCats[c.name] = (c.subCategories || []).map(s => s.name);
+                });
+                setAvailableCategories(formattedCats);
+                
+                const brands = Array.isArray(brandRes.data) ? brandRes.data : brandRes;
+                setAvailableBrands(brands.map(b => typeof b === 'string' ? b : b.name));
+            } catch (err) {
+                console.error('Failed to fetch form data:', err);
+            }
+        };
+        fetchFormData();
+    }, []);
 
     useEffect(() => {
         if (!isEditMode) return;
@@ -394,9 +419,9 @@ const ProductEdit = () => {
                     <div style={styles.row}>
                         <div>
                             <label style={styles.label}>Category *</label>
-                            <select value={category} onChange={handleCategoryChange} required style={styles.input}>
+                             <select value={category} onChange={handleCategoryChange} required style={styles.input}>
                                 <option value="">Select Category</option>
-                                {Object.keys(CATEGORIES).map(cat => (
+                                {Object.keys(availableCategories).map(cat => (
                                     <option key={cat} value={cat}>{cat}</option>
                                 ))}
                             </select>
@@ -557,9 +582,17 @@ const ProductEdit = () => {
                 {/* 4. Brand & SKU */}
                 <div style={{ marginBottom: '40px' }}>
                     <div style={styles.row}>
-                        <div>
+                         <div>
                             <label style={styles.label}>Brand</label>
-                            <input type="text" value={brand} onChange={(e) => setBrand(e.target.value)} placeholder="e.g. Soundcore" style={styles.input} />
+                            <select value={brand} onChange={(e) => setBrand(e.target.value)} style={styles.input}>
+                                <option value="">Select Brand</option>
+                                {availableBrands.map(b => (
+                                    <option key={b} value={b}>{b}</option>
+                                ))}
+                                {!availableBrands.includes(brand) && brand && (
+                                    <option value={brand}>{brand}</option>
+                                )}
+                            </select>
                         </div>
                         <div>
                             <label style={styles.label}>SKU (Optional)</label>

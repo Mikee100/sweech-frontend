@@ -21,6 +21,7 @@ const AdminLayout = () => {
         };
     }, []);
 
+
     const handleLogout = () => {
         logout();
         navigate('/login');
@@ -76,6 +77,7 @@ const AdminLayout = () => {
                         { to: '/admin/orderlist', icon: 'fas fa-shopping-cart', label: 'Orders' },
                         { to: '/admin/userlist', icon: 'fas fa-users', label: 'Users' },
                         { to: '/admin/discounts', icon: 'fas fa-tags', label: 'Discounts' },
+                        { to: '/admin/categories-brands', icon: 'fas fa-layer-group', label: 'Categories & Brands' },
                         { to: '/admin/settings', icon: 'fas fa-cog', label: 'Site Settings' },
                     ].map((link) => (
                         <NavLink

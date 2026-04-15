@@ -276,28 +276,7 @@ const ProductDetails = () => {
                     </nav>
 
                     <h1 className="pd-name">{product.name}</h1>
-
-                    {variantOptions.length > 0 && (
-                        <div className="pd-variants">
-                            <span className="pd-variants-label">Variants:</span>
-                            <div className="pd-variants-list">
-                                {[product, ...variantOptions].map((item) => (
-                                    <button
-                                        key={item._id}
-                                        type="button"
-                                        className={`pd-variant-pill ${item.slug === product.slug ? 'active' : ''}`}
-                                        onClick={() => {
-                                            if (item.slug !== product.slug) {
-                                                navigate(`/product/${item.slug}`);
-                                            }
-                                        }}
-                                    >
-                                        {item.variantLabel || item.color || item.subCategory || 'Option'}
-                                    </button>
-                                ))}
-                            </div>
-                        </div>
-                    )}
+             
 
                     <div className="pd-price-row">
                         <span className="pd-price-dot"></span>
@@ -381,7 +360,7 @@ const ProductDetails = () => {
                         </div>
                         {product.brand && (
                             <div className="pd-meta-row">
-                                <span className="pd-meta-label">BRAND:</span>
+                                <span className="pd-meta-label">Brand:</span>
                                 <span className="pd-meta-value">{product.brand}</span>
                             </div>
                         )}
@@ -389,8 +368,29 @@ const ProductDetails = () => {
                 </div>
             </div>
 
-            <ProductDescriptionSection html={product.description} />
+            <ProductDescriptionSection html={product.description} specs={product.specs} />
 
+                    {variantOptions.length > 0 && (
+                        <div className="pd-variants">
+                            <span className="pd-variants-label">Variants:</span>
+                            <div className="pd-variants-list">
+                                {[product, ...variantOptions].map((item) => (
+                                    <button
+                                        key={item._id}
+                                        type="button"
+                                        className={`pd-variant-pill ${item.slug === product.slug ? 'active' : ''}`}
+                                        onClick={() => {
+                                            if (item.slug !== product.slug) {
+                                                navigate(`/product/${item.slug}`);
+                                            }
+                                        }}
+                                    >
+                                        {item.variantLabel || item.color || item.subCategory || 'Option'}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+                    )}
             {relatedProducts.length > 0 && (
                 <section className="pd-related">
                     <div className="pd-related-header">

@@ -185,6 +185,27 @@ const Home = () => {
 
     const productCount = products.length;
 
+    // --- Fetch homepage sections from backend ---
+    const [homeSections, setHomeSections] = useState([]);
+    const [sectionsLoading, setSectionsLoading] = useState(true);
+    const [sectionsError, setSectionsError] = useState(null);
+
+    useEffect(() => {
+        const fetchSections = async () => {
+            setSectionsLoading(true);
+            setSectionsError(null);
+            try {
+                const data = await apiFetch(`${import.meta.env.VITE_API_URL}/api/sections`);
+                setHomeSections(Array.isArray(data) ? data : []);
+            } catch (err) {
+                setSectionsError(err.message || 'Failed to load homepage sections');
+            } finally {
+                setSectionsLoading(false);
+            }
+        };
+        fetchSections();
+    }, []);
+
     return (
         <div className="home-page">
             <Helmet>
@@ -604,6 +625,48 @@ const Home = () => {
                     ))}
                 </div>
             </section>
+            {/* --- Dynamic Homepage Sections --- */}
+            {!sectionsLoading && !sectionsError && homeSections.length > 0 && homeSections.map((section) => (
+                <section key={section._id} className="home-layer-section container dynamic-section">
+                    <div className="section-header">
+                        <div className="title-area">
+                            <span className="subtitle">{section.type.toUpperCase()}S</span>
+                            <h2 className="main-title">{section.name}</h2>
+                            {section.description && <p className="section-kicker">{section.description}</p>}
+                        </div>
+                    </div>
+
+                    {section.type === 'Product' ? (
+                        <div className="product-grid">
+                            {section.items && section.items.length > 0 ? (
+                                section.items.map((product) => (
+                                    <ProductCard key={product._id} product={product} />
+                                ))
+                            ) : (
+                                <p style={{ color: '#999', fontSize: 13 }}>No products added to this section yet.</p>
+                            )}
+                        </div>
+                    ) : (
+                        <div className="subcategory-pill-strip" style={{ gap: 12 }}>
+                            {section.items && section.items.length > 0 ? (
+                                section.items.map((cat) => (
+                                    <Link
+                                        key={cat._id}
+                                        to={`/search?category=${encodeURIComponent(cat.name || cat)}`}
+                                        className="subcategory-pill"
+                                        style={{ minWidth: 200, padding: 16 }}
+                                    >
+                                        <span className="subcategory-name" style={{ fontSize: 16 }}>{cat.name || cat}</span>
+                                        <span className="subcategory-count">Explore Category <ChevronRight size={12} /></span>
+                                    </Link>
+                                ))
+                            ) : (
+                                <p style={{ color: '#999', fontSize: 13 }}>No categories added to this section yet.</p>
+                            )}
+                        </div>
+                    )}
+                </section>
+            ))}
         </div>
     );
 };

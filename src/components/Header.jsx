@@ -184,11 +184,31 @@ const Header = ({ isCartOpen, setIsCartOpen }) => {
                 <div className="main-nav-wrapper">
                     <div className="container header-grid">
                         {/* Logo Block */}
-                        <div className="logo-area">
-                            <Link to="/" className="brand-logo">
-                                <span className="logo-accent">C</span>ASEPROZ
+                        <div className="logo-area" style={{ display: 'flex', alignItems: 'center', gap: '18px' }}>
+                            <Link to="/" className="brand-logo" style={{ display: 'flex', alignItems: 'center' }}>
+                                <img src="/WhatsApp%20Image%202026-04-15%20at%204.49.39%20PM.jpeg" alt="Logo" style={{ height: '54px', maxWidth: '140px', objectFit: 'contain', display: 'block' }} />
                             </Link>
-                            <span className="partner-logo">ANKER</span>
+                            <span style={{ height: '38px', borderLeft: '2px solid #bbb', margin: '0 8px' }}></span>
+                            <button
+                                className="partner-logo"
+                                style={{
+                                    fontWeight: 700,
+                                    fontSize: '2rem',
+                                    letterSpacing: '2px',
+                                    marginTop: '5px',
+                                    display: 'inline-block',
+                                    background: 'none',
+                                    border: 'none',
+                                    cursor: 'pointer',
+                                    padding: 0,
+                                    outline: 'none'
+                                }}
+                                onClick={() => navigate('/')}
+                                onMouseDown={e => e.preventDefault()} // Prevents focus border
+                                type="button"
+                            >
+                                ANKER
+                            </button>
                         </div>
 
                         {/* Navigation Links - Sweech-style */}

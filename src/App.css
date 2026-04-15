@@ -1,3 +1,10 @@
+.partner-logo {
+  color: #222;
+  transition: color 0.2s;
+}
+.partner-logo:hover, .partner-logo:focus {
+  color: #3fa9f5;
+}
 #root {
   max-width: 1280px;
   margin: 0 auto;

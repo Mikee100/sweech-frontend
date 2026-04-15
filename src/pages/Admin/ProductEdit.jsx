@@ -89,6 +89,7 @@ const ProductEdit = () => {
         fetchFormData();
     }, []);
 
+
     useEffect(() => {
         if (!isEditMode) return;
 
@@ -127,6 +128,11 @@ const ProductEdit = () => {
                 setMetaTitle(product.metaTitle || '');
                 setMetaDescription(product.metaDescription || '');
                 setSlugOverride(product.slug || '');
+
+                // Set the contentEditable div's content directly after loading
+                if (descriptionEditorRef.current) {
+                    descriptionEditorRef.current.innerHTML = product.description || '';
+                }
             } catch (err) {
                 setError('Failed to fetch product');
             } finally {
@@ -232,9 +238,22 @@ const ProductEdit = () => {
         setDescription(descriptionEditorRef.current.innerHTML);
     };
 
+
+    // Keep contentEditable in sync with state on mount and when description changes (for new product)
+    useEffect(() => {
+        if (descriptionEditorRef.current && !isEditMode) {
+            // Only set innerHTML if the content is different (prevents cursor jump)
+            if (descriptionEditorRef.current.innerHTML !== (description || '')) {
+                descriptionEditorRef.current.innerHTML = description || '';
+            }
+        }
+    }, [description, isEditMode]);
+
     const handleDescriptionInput = () => {
         if (!descriptionEditorRef.current) return;
-        setDescription(descriptionEditorRef.current.innerHTML);
+        // Only update state if content actually changed
+        const html = descriptionEditorRef.current.innerHTML;
+        if (html !== description) setDescription(html);
     };
 
     const insertDescriptionTemplate = (html) => {
@@ -616,7 +635,6 @@ const ProductEdit = () => {
                         ref={descriptionEditorRef}
                         contentEditable
                         onInput={handleDescriptionInput}
-                        dangerouslySetInnerHTML={{ __html: description }}
                         style={{
                             ...styles.input,
                             minHeight: '200px',
@@ -624,7 +642,8 @@ const ProductEdit = () => {
                             overflowY: 'auto',
                             backgroundColor: '#fff'
                         }}
-                        placeholder="Detailed product story and features..."
+                        data-placeholder="Detailed product story and features..."
+                        suppressContentEditableWarning={true}
                     />
                 </div>
 

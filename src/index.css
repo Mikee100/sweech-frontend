@@ -4171,6 +4171,94 @@ button {
   background: #f3f4f6;
 }
 
+.pd-variants-gallery {
+  margin-top: 18px;
+  margin-bottom: 8px;
+  border-top: 1px solid #f1f5f9;
+  border-bottom: 1px solid #f1f5f9;
+  padding: 16px 0;
+}
+
+.pd-variants-gallery-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.pd-variants-thumbnails {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.pd-variant-thumb-card {
+  border: 1px solid #e5e7eb;
+  border-radius: 999px;
+  background: #fff;
+  padding: 4px 8px 4px 4px;
+  text-align: left;
+  cursor: pointer;
+  transition: var(--transition);
+  color: inherit;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 170px;
+}
+
+.pd-variant-thumb-card:hover {
+  border-color: #d1d5db;
+  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.06);
+}
+
+.pd-variant-thumb-card.active {
+  border-color: var(--primary-red);
+  box-shadow: 0 0 0 2px rgba(228, 30, 38, 0.12);
+}
+
+.pd-variant-thumb-image-wrap {
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  background: #f8fafc;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.pd-variant-thumb-image {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.pd-variant-thumb-placeholder {
+  color: #9ca3af;
+  font-size: 12px;
+}
+
+.pd-variant-thumb-meta {
+  margin-top: 0;
+  display: grid;
+  gap: 1px;
+}
+
+.pd-variant-thumb-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: #111827;
+  line-height: 1.2;
+}
+
+.pd-variant-thumb-stock {
+  font-size: 10px;
+  color: #6b7280;
+  line-height: 1.1;
+}
+
 .pd-price-row {
   display: flex;
   align-items: center;

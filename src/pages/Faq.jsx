@@ -63,6 +63,15 @@ const Faq = () => {
                             </p>
                         </div>
                         <div className="faq-item">
+                            <h3>How do I pay with Lipa na M-Pesa?</h3>
+                            <p>
+                                To pay for your order using M-Pesa, go to <strong>Lipa na Mpesa</strong> on your phone and enter:<br />
+                                <strong>Account Number:</strong> 40043<br />
+                                <strong>Business Number:</strong> (your name as entered in the order)<br />
+                                After payment, your order will be processed promptly.
+                            </p>
+                        </div>
+                        <div className="faq-item">
                             <h3>My payment failed, what should I do?</h3>
                             <p>
                                 First, confirm that you have enough funds and that your details are correct. If you&apos;re still

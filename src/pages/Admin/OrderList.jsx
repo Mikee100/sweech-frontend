@@ -149,6 +149,7 @@ const OrderList = () => {
         window.open(url, '_blank');
     };
 
+
     if (loading)
         return (
             <div style={{ padding: '80px 0', textAlign: 'center', color: '#6b7280' }}>
@@ -158,7 +159,143 @@ const OrderList = () => {
         );
     if (error) return <div style={{ color: 'red' }}>{error}</div>;
 
+    // Group orders by status
+    const newStatuses = ['pending', 'confirmed'];
+    const processingStatuses = ['processing', 'dispatched', 'in_transit', 'out_for_delivery'];
+    const completedStatuses = ['delivered', 'cancelled'];
+
+    const groupedOrders = {
+        new: orders.filter((o) => newStatuses.includes(o.status)),
+        processing: orders.filter((o) => processingStatuses.includes(o.status)),
+        completed: orders.filter((o) => completedStatuses.includes(o.status)),
+    };
+
     const allSelected = orders.length > 0 && selectedOrderIds.length === orders.length;
+
+    // Helper to render a group
+    const renderOrderGroup = (groupOrders, groupTitle) => (
+        <div style={{ marginBottom: '36px' }}>
+            <h2 style={{ fontSize: '22px', marginBottom: '12px', color: '#1f2937' }}>{groupTitle} ({groupOrders.length})</h2>
+            {groupOrders.length === 0 ? (
+                <div style={{ color: '#9ca3af', fontSize: '15px', marginBottom: '16px' }}>No orders in this group.</div>
+            ) : (
+                <div style={{ backgroundColor: 'white', padding: '25px', borderRadius: '10px', boxShadow: '0 4px 6px rgba(0,0,0,0.05)', overflowX: 'auto' }}>
+                    <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+                        <thead>
+                            <tr style={{ borderBottom: '2px solid #eee' }}>
+                                <th style={{ padding: '12px', color: '#666', fontSize: '14px' }}>
+                                    <input
+                                        type="checkbox"
+                                        checked={groupOrders.length > 0 && groupOrders.every((order) => selectedOrderIds.includes(order._id))}
+                                        onChange={() => {
+                                            const groupIds = groupOrders.map((o) => o._id);
+                                            const allSelectedInGroup = groupIds.every((id) => selectedOrderIds.includes(id));
+                                            setSelectedOrderIds((prev) => {
+                                                if (allSelectedInGroup) {
+                                                    // Deselect all in group
+                                                    return prev.filter((id) => !groupIds.includes(id));
+                                                } else {
+                                                    // Select all in group
+                                                    return Array.from(new Set([...prev, ...groupIds]));
+                                                }
+                                            });
+                                        }}
+                                    />
+                                </th>
+                                <th style={{ padding: '12px', color: '#666', fontSize: '14px' }}>ID</th>
+                                <th style={{ padding: '12px', color: '#666', fontSize: '14px' }}>USER</th>
+                                <th style={{ padding: '12px', color: '#666', fontSize: '14px' }}>DATE</th>
+                                <th style={{ padding: '12px', color: '#666', fontSize: '14px' }}>TOTAL</th>
+                                <th style={{ padding: '12px', color: '#666', fontSize: '14px' }}>PAID</th>
+                                <th style={{ padding: '12px', color: '#666', fontSize: '14px' }}>DELIVERED</th>
+                                <th style={{ padding: '12px', color: '#666', fontSize: '14px' }}>STATUS</th>
+                                <th style={{ padding: '12px', color: '#666', fontSize: '14px' }}>PAYMENT</th>
+                                <th style={{ padding: '12px', color: '#666', fontSize: '14px' }}></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {groupOrders.map((order) => {
+                                const isSelected = selectedOrderIds.includes(order._id);
+                                return (
+                                    <tr key={order._id} style={{ borderBottom: '1px solid #eee' }}>
+                                        <td style={{ padding: '12px', fontSize: '14px' }}>
+                                            <input
+                                                type="checkbox"
+                                                checked={isSelected}
+                                                onChange={() => toggleSelectOrder(order._id)}
+                                            />
+                                        </td>
+                                        <td style={{ padding: '12px', fontSize: '14px', color: '#333' }}>{order._id}</td>
+                                        <td style={{ padding: '12px', fontSize: '14px', color: '#333' }}>
+                                            {order.user && (order.user.name || order.user.email)}
+                                        </td>
+                                        <td style={{ padding: '12px', fontSize: '14px', color: '#333' }}>
+                                            {order.createdAt ? order.createdAt.substring(0, 10) : ''}
+                                        </td>
+                                        <td style={{ padding: '12px', fontSize: '14px', color: '#333' }}>
+                                            KSh {order.totalPrice.toLocaleString()}
+                                        </td>
+                                        <td style={{ padding: '12px', fontSize: '14px' }}>
+                                            {order.isPaid ? (
+                                                <span style={{ color: '#10b981', backgroundColor: '#d1fae5', padding: '4px 8px', borderRadius: '4px', fontSize: '12px' }}>Yes</span>
+                                            ) : (
+                                                <span style={{ color: '#ef4444', backgroundColor: '#fee2e2', padding: '4px 8px', borderRadius: '4px', fontSize: '12px' }}>No</span>
+                                            )}
+                                        </td>
+                                        <td style={{ padding: '12px', fontSize: '14px' }}>
+                                            {order.isDelivered ? (
+                                                <span style={{ color: '#10b981', backgroundColor: '#d1fae5', padding: '4px 8px', borderRadius: '4px', fontSize: '12px' }}>Yes</span>
+                                            ) : (
+                                                <span style={{ color: '#ef4444', backgroundColor: '#fee2e2', padding: '4px 8px', borderRadius: '4px', fontSize: '12px' }}>No</span>
+                                            )}
+                                        </td>
+                                        <td style={{ padding: '12px', fontSize: '14px' }}>
+                                            <select
+                                                value={order.status || 'pending'}
+                                                onChange={(e) => handleStatusChange(order._id, e.target.value)}
+                                                style={{
+                                                    padding: '6px 8px',
+                                                    borderRadius: '6px',
+                                                    border: '1px solid #e5e7eb',
+                                                    fontSize: '12px',
+                                                    backgroundColor: '#f9fafb',
+                                                }}
+                                            >
+                                                {statusOptions.map((opt) => (
+                                                    <option key={opt.value} value={opt.value}>
+                                                        {opt.label}
+                                                    </option>
+                                                ))}
+                                            </select>
+                                        </td>
+                                        <td style={{ padding: '12px', fontSize: '14px', color: '#333' }}>
+                                            {order.paymentMethod || '-'}
+                                        </td>
+                                        <td style={{ padding: '12px', fontSize: '14px', textAlign: 'right' }}>
+                                            <Link
+                                                to={`/admin/order/${order._id}`}
+                                                style={{
+                                                    backgroundColor: '#f3f4f6',
+                                                    color: '#374151',
+                                                    padding: '6px 12px',
+                                                    borderRadius: '4px',
+                                                    textDecoration: 'none',
+                                                    fontSize: '12px',
+                                                    fontWeight: '500'
+                                                }}
+                                            >
+                                                Details
+                                            </Link>
+                                        </td>
+                                    </tr>
+                                );
+                            })}
+                        </tbody>
+                    </table>
+                </div>
+            )}
+        </div>
+    );
 
     return (
         <div>
@@ -380,108 +517,10 @@ const OrderList = () => {
                 </div>
             </div>
 
-            <div style={{ backgroundColor: 'white', padding: '25px', borderRadius: '10px', boxShadow: '0 4px 6px rgba(0,0,0,0.05)', overflowX: 'auto' }}>
-                <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
-                    <thead>
-                        <tr style={{ borderBottom: '2px solid #eee' }}>
-                            <th style={{ padding: '12px', color: '#666', fontSize: '14px' }}>
-                                <input
-                                    type="checkbox"
-                                    checked={allSelected}
-                                    onChange={toggleSelectAll}
-                                />
-                            </th>
-                            <th style={{ padding: '12px', color: '#666', fontSize: '14px' }}>ID</th>
-                            <th style={{ padding: '12px', color: '#666', fontSize: '14px' }}>USER</th>
-                            <th style={{ padding: '12px', color: '#666', fontSize: '14px' }}>DATE</th>
-                            <th style={{ padding: '12px', color: '#666', fontSize: '14px' }}>TOTAL</th>
-                            <th style={{ padding: '12px', color: '#666', fontSize: '14px' }}>PAID</th>
-                            <th style={{ padding: '12px', color: '#666', fontSize: '14px' }}>DELIVERED</th>
-                            <th style={{ padding: '12px', color: '#666', fontSize: '14px' }}>STATUS</th>
-                            <th style={{ padding: '12px', color: '#666', fontSize: '14px' }}>PAYMENT</th>
-                            <th style={{ padding: '12px', color: '#666', fontSize: '14px' }}></th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {orders.map((order) => {
-                            const isSelected = selectedOrderIds.includes(order._id);
-                            return (
-                                <tr key={order._id} style={{ borderBottom: '1px solid #eee' }}>
-                                    <td style={{ padding: '12px', fontSize: '14px' }}>
-                                        <input
-                                            type="checkbox"
-                                            checked={isSelected}
-                                            onChange={() => toggleSelectOrder(order._id)}
-                                        />
-                                    </td>
-                                    <td style={{ padding: '12px', fontSize: '14px', color: '#333' }}>{order._id}</td>
-                                    <td style={{ padding: '12px', fontSize: '14px', color: '#333' }}>
-                                        {order.user && (order.user.name || order.user.email)}
-                                    </td>
-                                    <td style={{ padding: '12px', fontSize: '14px', color: '#333' }}>
-                                        {order.createdAt ? order.createdAt.substring(0, 10) : ''}
-                                    </td>
-                                    <td style={{ padding: '12px', fontSize: '14px', color: '#333' }}>
-                                        KSh {order.totalPrice.toLocaleString()}
-                                    </td>
-                                    <td style={{ padding: '12px', fontSize: '14px' }}>
-                                        {order.isPaid ? (
-                                            <span style={{ color: '#10b981', backgroundColor: '#d1fae5', padding: '4px 8px', borderRadius: '4px', fontSize: '12px' }}>Yes</span>
-                                        ) : (
-                                            <span style={{ color: '#ef4444', backgroundColor: '#fee2e2', padding: '4px 8px', borderRadius: '4px', fontSize: '12px' }}>No</span>
-                                        )}
-                                    </td>
-                                    <td style={{ padding: '12px', fontSize: '14px' }}>
-                                        {order.isDelivered ? (
-                                            <span style={{ color: '#10b981', backgroundColor: '#d1fae5', padding: '4px 8px', borderRadius: '4px', fontSize: '12px' }}>Yes</span>
-                                        ) : (
-                                            <span style={{ color: '#ef4444', backgroundColor: '#fee2e2', padding: '4px 8px', borderRadius: '4px', fontSize: '12px' }}>No</span>
-                                        )}
-                                    </td>
-                                    <td style={{ padding: '12px', fontSize: '14px' }}>
-                                        <select
-                                            value={order.status || 'pending'}
-                                            onChange={(e) => handleStatusChange(order._id, e.target.value)}
-                                            style={{
-                                                padding: '6px 8px',
-                                                borderRadius: '6px',
-                                                border: '1px solid #e5e7eb',
-                                                fontSize: '12px',
-                                                backgroundColor: '#f9fafb',
-                                            }}
-                                        >
-                                            {statusOptions.map((opt) => (
-                                                <option key={opt.value} value={opt.value}>
-                                                    {opt.label}
-                                                </option>
-                                            ))}
-                                        </select>
-                                    </td>
-                                    <td style={{ padding: '12px', fontSize: '14px', color: '#333' }}>
-                                        {order.paymentMethod || '-'}
-                                    </td>
-                                    <td style={{ padding: '12px', fontSize: '14px', textAlign: 'right' }}>
-                                        <Link
-                                            to={`/admin/order/${order._id}`}
-                                            style={{
-                                                backgroundColor: '#f3f4f6',
-                                                color: '#374151',
-                                                padding: '6px 12px',
-                                                borderRadius: '4px',
-                                                textDecoration: 'none',
-                                                fontSize: '12px',
-                                                fontWeight: '500'
-                                            }}
-                                        >
-                                            Details
-                                        </Link>
-                                    </td>
-                                </tr>
-                            );
-                        })}
-                    </tbody>
-                </table>
-            </div>
+            {/* Grouped order sections */}
+            {renderOrderGroup(groupedOrders.new, 'New Orders')}
+            {renderOrderGroup(groupedOrders.processing, 'Processing Orders')}
+            {renderOrderGroup(groupedOrders.completed, 'Completed Orders')}
         </div>
     );
 };

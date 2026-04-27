@@ -3,11 +3,15 @@ import { Link } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
 import { apiFetch } from '../utils/apiClient';
 import ProductCard from '../components/ProductCard';
+import { useSiteConfig } from '../context/SiteConfigContext';
 import { SHIPPING_ZONES } from '../constants/shippingZones';
 import ErrorBanner from '../components/ErrorBanner';
 
 const Cart = () => {
     const { cart, cartTotal, removeFromCart, updateQuantity } = useCart();
+    const { config, loading: configLoading } = useSiteConfig();
+    
+    console.log('Site Config in Cart:', config);
     const [couponCode, setCouponCode] = useState('');
     const [couponError, setCouponError] = useState('');
     const [couponSuccess, setCouponSuccess] = useState('');
@@ -15,11 +19,31 @@ const Cart = () => {
     const [recommendations, setRecommendations] = useState([]);
     const [priceNotice, setPriceNotice] = useState('');
     const [recommendationsError, setRecommendationsError] = useState('');
-    const [selectedZoneId, setSelectedZoneId] = useState(() => {
-        const stored = localStorage.getItem('shippingZoneId');
-        return stored || SHIPPING_ZONES[0].id;
+    const [selectedZoneId, setSelectedZoneId] = useState(() => localStorage.getItem('shippingZoneId') || SHIPPING_ZONES[0].id);
+    const [selectedSubLocationId, setSelectedSubLocationId] = useState(() => {
+        const zone = SHIPPING_ZONES.find(z => z.id === (localStorage.getItem('shippingZoneId') || SHIPPING_ZONES[0].id));
+        return localStorage.getItem('shippingSubLocationId') || (zone && zone.subLocations[0]?.id) || '';
     });
 
+    const selectedZone = SHIPPING_ZONES.find(z => z.id === selectedZoneId) || SHIPPING_ZONES[0];
+    const selectedSubLocation = selectedZone.subLocations.find(sub => sub.id === selectedSubLocationId) || selectedZone.subLocations[0];
+    const shippingPrice = selectedZone.price;
+    const grandTotal = Math.max(cartTotal - discount, 0) + shippingPrice;
+
+    useEffect(() => {
+        localStorage.setItem('shippingZoneId', selectedZoneId);
+        localStorage.setItem('shippingSubLocationId', selectedSubLocationId);
+    }, [selectedZoneId, selectedSubLocationId]);
+
+    const handleSelectZone = (zoneId) => {
+        setSelectedZoneId(zoneId);
+        const zone = SHIPPING_ZONES.find(z => z.id === zoneId);
+        setSelectedSubLocationId(zone?.subLocations[0]?.id || '');
+    };
+
+    const handleSelectSubLocation = (subId) => {
+        setSelectedSubLocationId(subId);
+    };
     const handleApplyCoupon = async () => {
         const code = couponCode.trim();
         setCouponError('');
@@ -57,16 +81,11 @@ const Cart = () => {
         }
     };
 
-    const selectedZone =
-        SHIPPING_ZONES.find((zone) => zone.id === selectedZoneId) || SHIPPING_ZONES[0];
 
-    const handleSelectZone = (zoneId) => {
-        setSelectedZoneId(zoneId);
-        localStorage.setItem('shippingZoneId', zoneId);
-    };
 
-    const shippingPrice = selectedZone.price;
-    const grandTotal = Math.max(cartTotal - discount, 0) + shippingPrice;
+
+
+
 
     // Refresh recommendations (and ensure we have up-to-date product prices/stock)
     useEffect(() => {
@@ -178,9 +197,9 @@ const data = await apiFetch(`${import.meta.env.VITE_API_URL}/api/products`);
                         </div>
 
                         <div>
-                            {cart.map((item) => (
+            {cart.map((item) => (
                                 <div
-                                    key={item._id}
+                                    key={`${item._id}-${item.variantSku || 'default'}`}
                                     style={{
                                         display: 'grid',
                                         gridTemplateColumns: '2fr 1fr 1fr auto',
@@ -192,7 +211,7 @@ const data = await apiFetch(`${import.meta.env.VITE_API_URL}/api/products`);
                                 >
                                     <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
                                         <button
-                                            onClick={() => removeFromCart(item._id)}
+                                            onClick={() => removeFromCart(item._id, item.variantSku)}
                                             style={{
                                                 border: 'none',
                                                 background: 'none',
@@ -225,6 +244,11 @@ const data = await apiFetch(`${import.meta.env.VITE_API_URL}/api/products`);
                                             >
                                                 {item.name}
                                             </p>
+                                            {(item.variantLabel || item.variantColor || item.variantStyle || item.variantSku) && (
+                                                <p style={{ margin: '4px 0 0', fontSize: '12px', color: '#444' }}>
+                                                    {item.variantLabel || item.variantColor || item.variantStyle || item.variantSku}
+                                                </p>
+                                            )}
                                             {item.slug && (
                                                 <p
                                                     style={{
@@ -260,7 +284,7 @@ const data = await apiFetch(`${import.meta.env.VITE_API_URL}/api/products`);
                                             }}
                                         >
                                             <button
-                                                onClick={() => updateQuantity(item._id, item.quantity - 1)}
+                                                onClick={() => updateQuantity(item._id, item.quantity - 1, item.variantSku)}
                                                 style={{
                                                     width: '32px',
                                                     height: '32px',
@@ -283,7 +307,7 @@ const data = await apiFetch(`${import.meta.env.VITE_API_URL}/api/products`);
                                                 {item.quantity}
                                             </span>
                                             <button
-                                                onClick={() => updateQuantity(item._id, item.quantity + 1)}
+                                                onClick={() => updateQuantity(item._id, item.quantity + 1, item.variantSku)}
                                                 style={{
                                                     width: '32px',
                                                     height: '32px',
@@ -517,66 +541,58 @@ const data = await apiFetch(`${import.meta.env.VITE_API_URL}/api/products`);
                             <h3
                                 style={{
                                     fontSize: '14px',
-                                    margin: '0 0 8px',
+                                    margin: '0 0 12px',
                                     fontWeight: 600,
                                     textTransform: 'uppercase',
                                     letterSpacing: '0.06em',
                                     color: '#4b5563',
                                 }}
                             >
-                                Shipment 1 – choose your delivery / pickup area
+                                Choose your delivery area
                             </h3>
-                            <ul
-                                style={{
-                                    listStyle: 'none',
-                                    padding: 0,
-                                    margin: 0,
-                                    fontSize: '13px',
-                                    color: '#4b5563',
-                                }}
-                            >
-                                {SHIPPING_ZONES.map((zone) => (
-                                    <li
-                                        key={zone.id}
-                                        style={{
-                                            padding: '6px 0',
-                                            borderBottom: '1px solid #f3f4f6',
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            gap: '8px',
-                                        }}
-                                    >
-                                        <input
-                                            type="radio"
-                                            name="shippingZone"
-                                            value={zone.id}
-                                            checked={zone.id === selectedZoneId}
-                                            onChange={() => handleSelectZone(zone.id)}
-                                            style={{ marginTop: 0 }}
-                                        />
-                                        <div
-                                            style={{
-                                                display: 'flex',
-                                                justifyContent: 'space-between',
-                                                width: '100%',
-                                                gap: '8px',
-                                            }}
-                                        >
-                                            <span>{zone.label}</span>
-                                            <span
-                                                style={{
-                                                    fontWeight: 600,
-                                                    color: '#111827',
-                                                }}
-                                            >
-                                                {zone.price === 0
-                                                    ? 'Pick up (Free)'
-                                                    : `KSh ${zone.price.toLocaleString()}`}
-                                            </span>
-                                        </div>
-                                    </li>
-                                ))}
-                            </ul>
+                            <div style={{ marginBottom: '12px' }}>
+                                <label style={{ display: 'block', fontSize: '12px', color: '#666', marginBottom: '4px' }}>Region / Zone</label>
+                                <select
+                                    value={selectedZoneId}
+                                    onChange={e => handleSelectZone(e.target.value)}
+                                    style={{
+                                        width: '100%',
+                                        padding: '10px',
+                                        borderRadius: '8px',
+                                        border: '1px solid #ddd',
+                                        fontSize: '14px',
+                                    }}
+                                >
+                                    {SHIPPING_ZONES.map(zone => (
+                                        <option key={zone.id} value={zone.id}>{zone.label}</option>
+                                    ))}
+                                </select>
+                            </div>
+                            <div style={{ marginBottom: '12px' }}>
+                                <label style={{ display: 'block', fontSize: '12px', color: '#666', marginBottom: '4px' }}>Sub-location</label>
+                                <select
+                                    value={selectedSubLocationId}
+                                    onChange={e => handleSelectSubLocation(e.target.value)}
+                                    style={{
+                                        width: '100%',
+                                        padding: '10px',
+                                        borderRadius: '8px',
+                                        border: '1px solid #ddd',
+                                        fontSize: '14px',
+                                    }}
+                                >
+                                    {selectedZone.subLocations.map(sub => (
+                                        <option key={sub.id} value={sub.id}>{sub.label}</option>
+                                    ))}
+                                </select>
+                            </div>
+
+                            {selectedSubLocationId && (
+                                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px', marginTop: '10px', padding: '8px', backgroundColor: '#f9f9f9', borderRadius: '6px' }}>
+                                    <span style={{ color: '#666' }}>Delivery Fee:</span>
+                                    <span style={{ fontWeight: 600 }}>KSh {shippingPrice.toLocaleString()}</span>
+                                </div>
+                            )}
                         </div>
 
                         <div

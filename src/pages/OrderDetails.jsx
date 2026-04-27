@@ -370,6 +370,8 @@ const OrderDetails = () => {
                         </p>
                         <p style={{ margin: 0, color: '#4b5563', fontSize: '14px', lineHeight: 1.5 }}>
                             {order.shippingAddress.address}, {order.shippingAddress.city}
+                            {order.shippingAddress.region && `, ${order.shippingAddress.region}`}
+                            {order.shippingAddress.location && ` (${order.shippingAddress.location})`}
                             <br />
                             {order.shippingAddress.postalCode}, {order.shippingAddress.country}
                         </p>
@@ -452,10 +454,7 @@ const OrderDetails = () => {
                                 <span style={{ color: '#6b7280' }}>Shipping</span>
                                 <span>KSh {order.shippingPrice.toLocaleString()}</span>
                             </div>
-                            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                                <span style={{ color: '#6b7280' }}>Tax</span>
-                                <span>KSh {order.taxPrice.toLocaleString()}</span>
-                            </div>
+
                             {order.discountAmount > 0 && (
                                 <div
                                     style={{

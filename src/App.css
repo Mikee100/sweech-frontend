@@ -1,3 +1,81 @@
+@media (max-width: 600px) {
+  .hide-on-mobile {
+    display: none !important;
+  }
+}
+/* Header logo and ANKER styles */
+.logo-area {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+}
+.brand-logo {
+  display: flex;
+  align-items: center;
+}
+.header-logo-img {
+  height: 54px;
+  max-width: 140px;
+  object-fit: contain;
+  display: block;
+}
+.logo-separator {
+  height: 38px;
+  border-left: 2px solid #bbb;
+  margin: 0 8px;
+}
+.partner-logo {
+  font-weight: 700;
+  font-size: 2rem;
+  letter-spacing: 2px;
+  color: #222;
+  margin-top: 5px;
+  display: inline-block;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  outline: none;
+  transition: color 0.2s;
+}
+.partner-logo:hover, .partner-logo:focus {
+  color: #3fa9f5;
+}
+
+@media (max-width: 600px) {
+  .logo-area {
+    gap: 8px !important;
+  }
+  .brand-logo .header-logo-img {
+    height: 32px !important;
+    max-width: 70px !important;
+  }
+  .partner-logo {
+    font-size: 1.1rem !important;
+    margin-top: 2px !important;
+  }
+  .logo-separator {
+    height: 24px !important;
+    margin: 0 4px !important;
+  }
+}
+@media (max-width: 600px) {
+  .logo-area {
+    gap: 8px !important;
+  }
+  .logo-area .brand-logo img {
+    height: 32px !important;
+    max-width: 70px !important;
+  }
+  .partner-logo {
+    font-size: 1.1rem !important;
+    margin-top: 2px !important;
+  }
+  .logo-area span[style*='border-left'] {
+    height: 24px !important;
+    margin: 0 4px !important;
+  }
+}
 .partner-logo {
   color: #222;
   transition: color 0.2s;

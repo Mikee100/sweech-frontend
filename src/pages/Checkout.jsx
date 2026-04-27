@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
-import { SHIPPING_ZONES } from '../constants/shippingZones';
+// import { SHIPPING_ZONES } from '../constants/shippingZones';
 import { useSiteConfig } from '../context/SiteConfigContext';
 import { apiFetch, ApiError } from '../utils/apiClient';
 import ErrorBanner from '../components/ErrorBanner';
@@ -25,24 +25,28 @@ const Checkout = () => {
     const [success, setSuccess] = useState('');
     const [termsAccepted, setTermsAccepted] = useState(false);
 
-    const [selectedZoneId] = useState(() => {
-        const stored = localStorage.getItem('shippingZoneId');
-        return stored || SHIPPING_ZONES[0].id;
-    });
+
+    const [selectedRegion, setSelectedRegion] = useState(() => localStorage.getItem('deliveryRegion') || '');
+    const [selectedLocation, setSelectedLocation] = useState(() => localStorage.getItem('deliveryLocation') || '');
 
     const [discountCode, setDiscountCode] = useState('');
     const [discountAmount, setDiscountAmount] = useState(0);
     const [discountMessage, setDiscountMessage] = useState('');
     const [applyingDiscount, setApplyingDiscount] = useState(false);
 
-    const selectedZone =
-        SHIPPING_ZONES.find((zone) => zone.id === selectedZoneId) || SHIPPING_ZONES[0];
+    const deliveryGroups = config?.deliveryRouteGroups || [];
+    const currentGroup = deliveryGroups.find(g => g.road === selectedRegion);
+    const currentLocation = currentGroup?.items.find(i => i.location === selectedLocation);
 
-    const taxRate = typeof config?.taxRate === 'number' ? config.taxRate : 0.16;
-    const shippingPrice = selectedZone.price;
-    const taxPrice = cartTotal * taxRate;
+    const shippingPrice = currentLocation?.price || 0;
     const subtotalBeforeDiscount = cartTotal;
-    const totalPrice = subtotalBeforeDiscount + shippingPrice + taxPrice - discountAmount;
+    const totalPrice = Math.max(0, subtotalBeforeDiscount + shippingPrice - discountAmount);
+
+
+    useEffect(() => {
+        localStorage.setItem('deliveryRegion', selectedRegion);
+        localStorage.setItem('deliveryLocation', selectedLocation);
+    }, [selectedRegion, selectedLocation]);
 
     useEffect(() => {
         if (!user) {
@@ -58,6 +62,7 @@ const Checkout = () => {
         setLoading(true);
         setError('');
         setSuccess('');
+
 
         // Frontend validation to ensure required fields are filled
         if (!fullName.trim()) {
@@ -82,6 +87,12 @@ const Checkout = () => {
             return;
         }
 
+        if (!selectedRegion || !selectedLocation) {
+            setError('Please select your delivery region and location.');
+            setLoading(false);
+            return;
+        }
+
         if (!termsAccepted) {
             const message = 'Please confirm that you agree to the terms before placing the order.';
             setError(message);
@@ -95,17 +106,26 @@ const Checkout = () => {
                 qty: item.quantity,
                 image: item.images[0],
                 price: item.price,
-                product: item._id
+                product: item._id,
+                variantSku: item.variantSku || undefined,
             })),
-            shippingAddress: { name: fullName, phone: phoneNormalized, address, city, postalCode, country },
+            shippingAddress: { 
+                name: fullName, 
+                phone: phoneNormalized, 
+                address, 
+                city, 
+                postalCode, 
+                country,
+                region: selectedRegion,
+                location: selectedLocation
+            },
             paymentMethod,
             itemsPrice: cartTotal,
             shippingPrice,
-            taxPrice,
+            taxPrice: 0,
             totalPrice,
             discountCode: discountAmount > 0 ? discountCode.trim() || null : null,
             discountAmount,
-            shippingZoneId: selectedZoneId
         };
 
         try {
@@ -150,6 +170,7 @@ const Checkout = () => {
         setDiscountMessage('');
         setError('');
         try {
+            const cartProductIds = cart.map(item => item._id);
             const data = await apiFetch(`${import.meta.env.VITE_API_URL}/api/discounts/apply`, {
                 method: 'POST',
                 headers: {
@@ -158,6 +179,7 @@ const Checkout = () => {
                 body: JSON.stringify({
                     code,
                     itemsTotal: cartTotal,
+                    cartProductIds,
                 }),
             });
             setDiscountAmount(data.discountAmount || 0);
@@ -177,8 +199,28 @@ const Checkout = () => {
 
     if (!user || cart.length === 0) return null;
 
+    // Lipa na M-Pesa payment instructions
+    const showMpesaInstructions = paymentMethod === 'M-Pesa';
+
     return (
         <div className="checkout-page container" style={{ padding: '60px 0' }}>
+            {showMpesaInstructions && (
+                <div style={{
+                    background: '#e6f7ee',
+                    border: '1px solid #38a169',
+                    borderRadius: 8,
+                    padding: 16,
+                    marginBottom: 24,
+                    color: '#22543d',
+                    fontWeight: 500
+                }}>
+                    <span role="img" aria-label="mpesa" style={{marginRight: 8}}>💳</span>
+                    <strong>Lipa na M-Pesa Instructions:</strong><br />
+                    To pay for your order, use <strong>Lipa na Mpesa</strong> and enter:<br />
+                    <strong>Account Number:</strong> 40043<br />
+                    <strong>Business Number:</strong> (your name as entered in the order)
+                </div>
+            )}
             <h1 style={{ marginBottom: '16px', fontSize: '32px', fontWeight: 'bold' }}>Checkout</h1>
             <ErrorBanner message={error} onClose={() => setError('')} />
 
@@ -213,6 +255,40 @@ const Checkout = () => {
                             </div>
                         </div>
 
+                        <div style={{ marginBottom: '20px' }}>
+                            <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: '600' }}>Delivery Region / Road</label>
+                            <select
+                                value={selectedRegion}
+                                onChange={e => {
+                                    setSelectedRegion(e.target.value);
+                                    setSelectedLocation('');
+                                }}
+                                required
+                                style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #ddd', marginBottom: '10px' }}
+                            >
+                                <option value="">Select Region</option>
+                                {deliveryGroups.map(group => (
+                                    <option key={group.road} value={group.road}>{group.road}</option>
+                                ))}
+                            </select>
+                        </div>
+                        {selectedRegion && (
+                            <div style={{ marginBottom: '20px' }}>
+                                <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: '600' }}>Specific Location</label>
+                                <select
+                                    value={selectedLocation}
+                                    onChange={e => setSelectedLocation(e.target.value)}
+                                    required
+                                    style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #ddd' }}
+                                >
+                                    <option value="">Select Location</option>
+                                    {currentGroup?.items.map(item => (
+                                        <option key={item.location} value={item.location}>{item.location} (KSh {item.price.toLocaleString()})</option>
+                                    ))}
+                                </select>
+                            </div>
+                        )}
+
                         <div>
                             <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: '600' }}>Country</label>
                             <input type="text" value={country} readOnly style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #ddd', backgroundColor: '#f9f9f9' }} />
@@ -240,10 +316,15 @@ const Checkout = () => {
 
                         <div style={{ maxHeight: '300px', overflowY: 'auto', marginBottom: '20px' }}>
                             {cart.map(item => (
-                                <div key={item._id} style={{ display: 'flex', gap: '15px', marginBottom: '15px', paddingBottom: '15px', borderBottom: '1px solid #f9f9f9' }}>
+                                <div key={`${item._id}-${item.variantSku || 'default'}`} style={{ display: 'flex', gap: '15px', marginBottom: '15px', paddingBottom: '15px', borderBottom: '1px solid #f9f9f9' }}>
                                     <img src={item.images[0]} alt={item.name} style={{ width: '50px', height: '50px', objectFit: 'contain' }} />
                                     <div style={{ flex: 1 }}>
                                         <p style={{ fontSize: '14px', margin: 0, fontWeight: 'bold' }}>{item.name}</p>
+                                        {(item.variantLabel || item.variantColor || item.variantStyle || item.variantSku) && (
+                                            <p style={{ fontSize: '12px', margin: '2px 0 0', color: '#444' }}>
+                                                {item.variantLabel || item.variantColor || item.variantStyle || item.variantSku}
+                                            </p>
+                                        )}
                                         <p style={{ fontSize: '12px', color: '#666' }}>{item.quantity} x KSh {item.price.toLocaleString()}</p>
                                     </div>
                                     <p style={{ fontSize: '14px', fontWeight: 'bold', margin: 0 }}>KSh {(item.quantity * item.price).toLocaleString()}</p>
@@ -256,14 +337,11 @@ const Checkout = () => {
                                 <span style={{ color: '#666' }}>Items Subtotal:</span>
                                 <span>KSh {cartTotal.toLocaleString()}</span>
                             </div>
-                            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                                <span style={{ color: '#666' }}>Shipping ({selectedZone.label}):</span>
+                             <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                <span style={{ color: '#666' }}>Shipping:</span>
                                 <span>{shippingPrice === 0 ? 'Pick up (Free)' : `KSh ${shippingPrice.toLocaleString()}`}</span>
                             </div>
-                            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                                <span style={{ color: '#666' }}>Tax ({Math.round(taxRate * 100)}%):</span>
-                                <span>KSh {taxPrice.toLocaleString()}</span>
-                            </div>
+
                             {discountAmount > 0 && (
                                 <div style={{ display: 'flex', justifyContent: 'space-between', color: '#16a34a' }}>
                                     <span>Discount</span>

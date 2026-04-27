@@ -39,6 +39,7 @@ import Discounts from './pages/Admin/Discounts'
 import OrderDetailsAdmin from './pages/Admin/OrderDetailsAdmin'
 import AdminCategoriesBrands from './pages/Admin/AdminCategoriesBrands'
 import HomeSections from './pages/Admin/HomeSections'
+import DeliveryRoutes from './pages/Admin/DeliveryRoutes'
 
 function App() {
   const [isCartOpen, setIsCartOpen] = useState(false);
@@ -101,6 +102,7 @@ function App() {
                 <Route path="discounts" element={<Discounts />} />
                 <Route path="categories-brands" element={<AdminCategoriesBrands />} />
                 <Route path="home-sections" element={<HomeSections />} />
+                <Route path="delivery-routes" element={<DeliveryRoutes />} />
               </Route>
             </Route>
           </Routes>

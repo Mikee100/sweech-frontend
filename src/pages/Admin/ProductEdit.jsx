@@ -1,3 +1,5 @@
+
+
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
@@ -11,7 +13,19 @@ const toList = (value) => {
         .filter(Boolean);
 };
 
+const createEmptyVariant = () => ({
+    label: '',
+    color: '',
+    style: '',
+    image: '',
+    price: '',
+    stock: '',
+    sku: '',
+});
+
 const ProductEdit = () => {
+        // Variants state
+        const [variants, setVariants] = useState([]);
     const { id } = useParams();
     const isEditMode = Boolean(id);
     const navigate = useNavigate();
@@ -33,6 +47,7 @@ const ProductEdit = () => {
     const [featureSubtext, setFeatureSubtext] = useState('');
     const [notes, setNotes] = useState([]);
     const [stock, setStock] = useState(0);
+    const [lowStockThreshold, setLowStockThreshold] = useState(5);
     const [description, setDescription] = useState('');
     const [onSale, setOnSale] = useState(false);
     const [isFeatured, setIsFeatured] = useState(false);
@@ -115,6 +130,11 @@ const ProductEdit = () => {
                 setFeatureSubtext(product.featureSubtext || '');
                 setNotes(product.notes || []);
                 setStock(Number(product.stock || 0));
+                setLowStockThreshold(
+                    product.lowStockThreshold !== undefined && product.lowStockThreshold !== null
+                        ? Number(product.lowStockThreshold)
+                        : 5
+                );
                 setDescription(product.description || '');
                 setOnSale(Boolean(product.onSale));
                 setIsFeatured(Boolean(product.isFeatured));
@@ -128,6 +148,8 @@ const ProductEdit = () => {
                 setMetaTitle(product.metaTitle || '');
                 setMetaDescription(product.metaDescription || '');
                 setSlugOverride(product.slug || '');
+
+                setVariants(product.variants || []);
 
                 // Set the contentEditable div's content directly after loading
                 if (descriptionEditorRef.current) {
@@ -219,6 +241,50 @@ const ProductEdit = () => {
         setImage('');
     };
 
+    const addVariant = () => {
+        setVariants((prev) => [...prev, createEmptyVariant()]);
+    };
+
+    const removeVariant = (index) => {
+        setVariants((prev) => prev.filter((_, i) => i !== index));
+    };
+
+    const updateVariant = (index, field, value) => {
+        setVariants((prev) => {
+            const next = [...prev];
+            next[index] = { ...(next[index] || createEmptyVariant()), [field]: value };
+            return next;
+        });
+    };
+
+    const addVariantOption = (variantIdx) => {
+        setVariants((prev) => {
+            const next = [...prev];
+            next[variantIdx] = next[variantIdx] || createEmptyVariant();
+            next[variantIdx].options = next[variantIdx].options || [];
+            next[variantIdx].options.push({ key: '', value: '' });
+            return next;
+        });
+    };
+
+    const removeVariantOption = (variantIdx, optIdx) => {
+        setVariants((prev) => {
+            const next = [...prev];
+            if (!next[variantIdx]?.options) return prev;
+            next[variantIdx].options.splice(optIdx, 1);
+            return next;
+        });
+    };
+
+    const updateVariantOption = (variantIdx, optIdx, field, value) => {
+        setVariants((prev) => {
+            const next = [...prev];
+            if (!next[variantIdx]?.options?.[optIdx]) return prev;
+            next[variantIdx].options[optIdx][field] = value;
+            return next;
+        });
+    };
+
     const moveImage = (index, direction) => {
         setImages((prev) => {
             const next = [...prev];
@@ -277,6 +343,41 @@ const ProductEdit = () => {
             .replace(/ /g, '-')
             .replace(/[^\w-]+/g, '');
 
+        const normalizedVariants = (variants || [])
+            .map((variant) => ({
+                label: String(variant.label || variant.color || '').trim(),
+                color: String(variant.color || '').trim(),
+                style: String(variant.style || '').trim(),
+                image: String(variant.image || '').trim(),
+                price: Number(variant.price),
+                stock: Number(variant.stock),
+                sku: String(variant.sku || '').trim(),
+            }))
+            .filter((variant) => variant.label || variant.sku);
+
+        const hasInvalidVariant = normalizedVariants.some(
+            (variant) =>
+                !variant.label ||
+                !variant.sku ||
+                !Number.isFinite(variant.price) ||
+                !Number.isFinite(variant.stock) ||
+                variant.price < 0 ||
+                variant.stock < 0
+        );
+
+        if (hasInvalidVariant) {
+            setError('Each variant must include label/color, SKU, price, and stock.');
+            setLoading(false);
+            return;
+        }
+
+        const skuSet = new Set(normalizedVariants.map((variant) => variant.sku.toLowerCase()));
+        if (skuSet.size !== normalizedVariants.length) {
+            setError('Variant SKU values must be unique.');
+            setLoading(false);
+            return;
+        }
+
         const productData = {
             name,
             slug,
@@ -294,6 +395,7 @@ const ProductEdit = () => {
             featureSubtext,
             notes,
             stock,
+            lowStockThreshold,
             description,
             onSale,
             isFeatured,
@@ -302,6 +404,7 @@ const ProductEdit = () => {
             specs,
             metaTitle,
             metaDescription,
+            variants: normalizedVariants,
         };
 
         try {
@@ -472,19 +575,15 @@ const ProductEdit = () => {
                             <label style={styles.label}>Stock Quantity *</label>
                             <input type="number" value={stock} onChange={(e) => setStock(Number(e.target.value))} required style={styles.input} />
                         </div>
-                        <div style={{ display: 'flex', gap: '20px', paddingTop: '35px' }}>
-                           <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '14px', fontWeight: '600' }}>
-                               <input type="checkbox" checked={isActive} onChange={(e) => setIsActive(e.target.checked)} style={{ width: '18px', height: '18px' }} />
-                               Active
-                           </label>
-                           <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '14px', fontWeight: '600' }}>
-                               <input type="checkbox" checked={onSale} onChange={(e) => setOnSale(e.target.checked)} style={{ width: '18px', height: '18px' }} />
-                               On Sale
-                           </label>
-                           <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '14px', fontWeight: '600' }}>
-                               <input type="checkbox" checked={isFeatured} onChange={(e) => setIsFeatured(e.target.checked)} style={{ width: '18px', height: '18px' }} />
-                               Featured
-                           </label>
+                        <div>
+                            <label style={styles.label}>Low Stock Threshold</label>
+                            <input type="number" value={lowStockThreshold} min={0} onChange={(e) => setLowStockThreshold(Number(e.target.value))} style={styles.input} />
+                            {Number(stock) <= Number(lowStockThreshold) && (
+                                <div style={{ color: '#E41E26', fontWeight: 600, marginTop: 6, fontSize: 13 }}>
+                                    <i className="fas fa-exclamation-triangle" style={{ marginRight: 6 }}></i>
+                                    Warning: Stock is at or below the low-stock threshold!
+                                </div>
+                            )}
                         </div>
                     </div>
                 </div>
@@ -595,6 +694,74 @@ const ProductEdit = () => {
                                 style={styles.input}
                             />
                         </div>
+                    </div>
+                </div>
+
+                {/* 3b. Product Variants */}
+                <div style={{ marginBottom: '40px', padding: '25px', backgroundColor: '#f3f4f6', borderRadius: '12px', border: '1px solid #e5e7eb' }}>
+                    <h2 style={{ ...styles.sectionTitle, marginBottom: '15px' }}>
+                        <i className="fas fa-th-large" style={{ color: '#E41E26' }}></i>
+                        Product Variants
+                    </h2>
+                    <p style={{ fontSize: '13px', color: '#666', marginBottom: '15px', marginTop: '-10px' }}>
+                        Add different options for this product (e.g. color, style, etc).
+                    </p>
+                    <button type="button" onClick={addVariant} style={{ marginBottom: '18px', padding: '8px 18px', backgroundColor: '#E41E26', color: 'white', border: 'none', borderRadius: '8px', fontWeight: '700', fontSize: '14px', cursor: 'pointer' }}>+ Add Variant</button>
+                    {variants.length === 0 && <div style={{ color: '#999', fontSize: '13px', marginBottom: '10px' }}>No variants added yet.</div>}
+                    <div style={{ display: 'grid', gap: '18px' }}>
+                        {variants.map((variant, idx) => (
+                            <div key={idx} style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: '10px', padding: '18px', position: 'relative' }}>
+                                <button type="button" onClick={() => removeVariant(idx)} style={{ position: 'absolute', top: 10, right: 10, background: 'none', border: 'none', color: '#E41E26', fontSize: '18px', cursor: 'pointer' }} title="Remove Variant">×</button>
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '16px', marginBottom: '10px' }}>
+                                    <div>
+                                        <label style={styles.label}>Label *</label>
+                                        <input type="text" value={variant.label || ''} onChange={e => updateVariant(idx, 'label', e.target.value)} placeholder="e.g. White" style={styles.input} />
+                                    </div>
+                                    <div>
+                                        <label style={styles.label}>Color</label>
+                                        <input type="text" value={variant.color || ''} onChange={e => updateVariant(idx, 'color', e.target.value)} placeholder="e.g. White" style={styles.input} />
+                                    </div>
+                                    <div>
+                                        <label style={styles.label}>Style</label>
+                                        <input type="text" value={variant.style || ''} onChange={e => updateVariant(idx, 'style', e.target.value)} placeholder="e.g. Matte" style={styles.input} />
+                                    </div>
+                                </div>
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '16px', marginBottom: '10px' }}>
+                                    <div>
+                                        <label style={styles.label}>Image URL</label>
+                                        <input type="text" value={variant.image || ''} onChange={e => updateVariant(idx, 'image', e.target.value)} placeholder="Paste image URL" style={styles.input} />
+                                    </div>
+                                    <div>
+                                        <label style={styles.label}>SKU *</label>
+                                        <input type="text" value={variant.sku || ''} onChange={e => updateVariant(idx, 'sku', e.target.value)} placeholder="e.g. CASE-IPH15-WHT" style={styles.input} />
+                                    </div>
+                                    <div>
+                                        <label style={styles.label}>Price *</label>
+                                        <input type="number" value={variant.price || ''} onChange={e => updateVariant(idx, 'price', e.target.value)} placeholder="e.g. 1200" style={styles.input} />
+                                    </div>
+                                </div>
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '10px' }}>
+                                    <div>
+                                        <label style={styles.label}>Stock *</label>
+                                        <input type="number" value={variant.stock || ''} onChange={e => updateVariant(idx, 'stock', e.target.value)} placeholder="e.g. 10" style={styles.input} />
+                                    </div>
+                                    <div>
+                                        <label style={styles.label}>Other Options</label>
+                                        <button type="button" onClick={() => addVariantOption(idx)} style={{ marginLeft: '10px', padding: '4px 10px', backgroundColor: '#f0f0f0', border: '1px solid #ddd', borderRadius: '6px', fontSize: '12px', cursor: 'pointer' }}>+ Add Option</button>
+                                    </div>
+                                </div>
+                                <div style={{ display: 'grid', gap: '8px', marginTop: '8px' }}>
+                                    {(variant.options || []).map((opt, optIdx) => (
+                                        <div key={optIdx} style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                                            <input type="text" value={opt.key} onChange={e => updateVariantOption(idx, optIdx, 'key', e.target.value)} placeholder="Option Name (e.g. Material)" style={{ ...styles.input, flex: 1 }} />
+                                            <input type="text" value={opt.value} onChange={e => updateVariantOption(idx, optIdx, 'value', e.target.value)} placeholder="Option Value (e.g. Silicone)" style={{ ...styles.input, flex: 1 }} />
+                                            <button type="button" onClick={() => removeVariantOption(idx, optIdx)} style={{ padding: '6px', color: '#E41E26', cursor: 'pointer', border: 'none', background: 'none', fontSize: '16px' }} title="Remove Option"><i className="fas fa-times"></i></button>
+                                        </div>
+                                    ))}
+                                    {(variant.options || []).length === 0 && <div style={{ color: '#aaa', fontSize: '12px' }}>No extra options.</div>}
+                                </div>
+                            </div>
+                        ))}
                     </div>
                 </div>
 

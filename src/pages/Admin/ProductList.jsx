@@ -19,7 +19,7 @@ const ProductList = () => {
     const fetchProducts = async () => {
         try {
             const data = await apiFetch(`${import.meta.env.VITE_API_URL}/api/products`);
-            setProducts(data);
+            setProducts(Array.isArray(data.products) ? data.products : []);
             setSelectedProductIds([]);
             setLoading(false);
         } catch (err) {

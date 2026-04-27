@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import Select from 'react-select';
 import { useAuth } from '../../context/AuthContext';
 import { apiFetch } from '../../utils/apiClient';
 
@@ -14,7 +15,9 @@ const emptyDiscount = () => ({
     startsAt: '',
     expiresAt: '',
     maxUses: '',
+    products: [], // array of product IDs
 });
+
 
 const Discounts = () => {
     const { user } = useAuth();
@@ -24,6 +27,10 @@ const Discounts = () => {
     const [savingId, setSavingId] = useState(null);
     const [editing, setEditing] = useState(null);
 
+    // Product selection state
+    const [products, setProducts] = useState([]);
+    const [productsLoading, setProductsLoading] = useState(false);
+
     // Quick filters and testing tools
     const [statusFilter, setStatusFilter] = useState('all');
     const [sampleCode, setSampleCode] = useState('');
@@ -31,6 +38,23 @@ const Discounts = () => {
     const [sampleResult, setSampleResult] = useState(null);
     const [sampleError, setSampleError] = useState('');
     const [testing, setTesting] = useState(false);
+    // Fetch all products for selection
+    useEffect(() => {
+        const fetchProducts = async () => {
+            setProductsLoading(true);
+            try {
+                const url = `${import.meta.env.VITE_API_URL}/api/products`;
+                const data = await apiFetch(url);
+                // If paginated, use data.products; else, use data
+                setProducts(Array.isArray(data) ? data : data.products || []);
+            } catch (err) {
+                // ignore for now
+            } finally {
+                setProductsLoading(false);
+            }
+        };
+        fetchProducts();
+    }, []);
 
     const fetchDiscounts = async () => {
         if (!user) return;
@@ -68,6 +92,7 @@ const Discounts = () => {
             startsAt: disc.startsAt ? disc.startsAt.substring(0, 10) : '',
             expiresAt: disc.expiresAt ? disc.expiresAt.substring(0, 10) : '',
             maxUses: disc.maxUses ?? '',
+            products: Array.isArray(disc.products) ? disc.products : [],
         });
     };
 
@@ -77,6 +102,25 @@ const Discounts = () => {
         setEditing((prev) => ({
             ...prev,
             [field]: value,
+        }));
+    };
+
+    // For react-select multi-select
+    const handleProductsChange = (selectedOptions) => {
+        setEditing((prev) => ({
+            ...prev,
+            products: selectedOptions ? selectedOptions.map((opt) => opt.value) : [],
+        }));
+    };
+
+    // For select all toggle
+    const [selectAll, setSelectAll] = useState(false);
+    const handleSelectAll = (e) => {
+        const checked = e.target.checked;
+        setSelectAll(checked);
+        setEditing((prev) => ({
+            ...prev,
+            products: checked ? products.map((p) => p._id) : [],
         }));
     };
 
@@ -97,6 +141,7 @@ const Discounts = () => {
             expiresAt: editing.expiresAt ? new Date(editing.expiresAt) : undefined,
             maxUses:
                 editing.maxUses === '' ? undefined : Number(editing.maxUses),
+            products: editing.products || [],
         };
 
         const isNew = !editing._id;
@@ -453,6 +498,65 @@ const Discounts = () => {
                     </h2>
                     <form onSubmit={saveDiscount}>
                         <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1.2fr 1fr', gap: '16px', marginBottom: '16px' }}>
+                                                        <div>
+                                                            <label style={styles.label}>Applies to products</label>
+                                                            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+                                                                <input
+                                                                    type="checkbox"
+                                                                    checked={selectAll}
+                                                                    onChange={handleSelectAll}
+                                                                    id="selectAllProducts"
+                                                                    style={{ marginRight: 4 }}
+                                                                    disabled={productsLoading}
+                                                                />
+                                                                <label htmlFor="selectAllProducts" style={{ fontSize: 13, color: '#374151', cursor: 'pointer' }}>
+                                                                    Select all products
+                                                                </label>
+                                                            </div>
+                                                            <Select
+                                                                isMulti
+                                                                isClearable
+                                                                isSearchable
+                                                                options={products.map((p) => ({
+                                                                    value: p._id,
+                                                                    label: p.name + (p.category ? ` (${p.category})` : ''),
+                                                                    image: p.images && p.images.length > 0 ? p.images[0] : null,
+                                                                }))}
+                                                                value={products
+                                                                    .filter((p) => (editing.products || []).includes(p._id))
+                                                                    .map((p) => ({
+                                                                        value: p._id,
+                                                                        label: p.name + (p.category ? ` (${p.category})` : ''),
+                                                                        image: p.images && p.images.length > 0 ? p.images[0] : null,
+                                                                    }))}
+                                                                onChange={handleProductsChange}
+                                                                isDisabled={productsLoading || selectAll}
+                                                                placeholder={productsLoading ? 'Loading products...' : 'Select products...'}
+                                                                styles={{
+                                                                    option: (base, state) => ({
+                                                                        ...base,
+                                                                        display: 'flex',
+                                                                        alignItems: 'center',
+                                                                    }),
+                                                                    singleValue: (base, state) => ({
+                                                                        ...base,
+                                                                        display: 'flex',
+                                                                        alignItems: 'center',
+                                                                    }),
+                                                                }}
+                                                                formatOptionLabel={(option) => (
+                                                                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                                                        {option.image && (
+                                                                            <img src={option.image} alt="" style={{ width: 28, height: 28, objectFit: 'cover', borderRadius: 6 }} />
+                                                                        )}
+                                                                        <span>{option.label}</span>
+                                                                    </div>
+                                                                )}
+                                                            />
+                                                            <div style={{ fontSize: '12px', color: '#6b7280', marginTop: 4 }}>
+                                                                Search and select products. Selected products appear as tags. Leave empty or check "Select all" for all products.
+                                                            </div>
+                                                        </div>
                             <div>
                                 <label style={styles.label}>Code</label>
                                 <input

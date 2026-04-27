@@ -8,6 +8,11 @@ import { apiFetch } from '../utils/apiClient';
 import ProductDescriptionSection from '../components/ProductDescriptionSection';
 import ProductCard from '../components/ProductCard';
 
+const buildVariantDisplayName = (variant) => {
+    if (!variant) return 'Option';
+    return variant.label || variant.color || variant.style || variant.sku || 'Option';
+};
+
 const ProductDetails = () => {
     const { slug } = useParams();
     const { addToCart } = useCart();
@@ -22,7 +27,7 @@ const ProductDetails = () => {
     const [addedToCart, setAddedToCart] = useState(false);
     const [isZoomActive, setIsZoomActive] = useState(false);
     const [zoomTransform, setZoomTransform] = useState(null);
-    const [variantOptions, setVariantOptions] = useState([]);
+    const [selectedVariantSku, setSelectedVariantSku] = useState('');
     const [relatedProducts, setRelatedProducts] = useState([]);
 
     useEffect(() => {
@@ -41,32 +46,12 @@ const ProductDetails = () => {
         fetchProduct();
     }, [slug]);
 
-    // Load variants and related products once we know the main product
+    // Load related products once we know the main product
     useEffect(() => {
         const loadExtraData = async () => {
             if (!product) return;
 
             try {
-                // Variants: same variantGroup, different _id
-                if (product.variantGroup) {
-                    try {
-                        const variantData = await apiFetch(
-                            `${import.meta.env.VITE_API_URL}/api/products?variantGroup=${encodeURIComponent(
-                                product.variantGroup
-                            )}`
-                        );
-                        const list = Array.isArray(variantData) ? variantData : variantData.products || [];
-                        const siblings = list.filter(
-                            (p) => p._id !== product._id && p.variantLabel
-                        );
-                        setVariantOptions(siblings);
-                    } catch {
-                        setVariantOptions([]);
-                    }
-                } else {
-                    setVariantOptions([]);
-                }
-
                 // Related products: same category/subCategory, different _id
                 const params = new URLSearchParams();
                 if (product.category) params.append('category', product.category);
@@ -90,6 +75,17 @@ const ProductDetails = () => {
         loadExtraData();
     }, [product]);
 
+    useEffect(() => {
+        if (!product) return;
+        const firstInStock = (product.variants || []).find((variant) => variant.stock > 0);
+        setSelectedVariantSku(firstInStock?.sku || product.variants?.[0]?.sku || '');
+    }, [product]);
+
+    const selectedVariant = (product?.variants || []).find((variant) => variant.sku === selectedVariantSku) || null;
+    const effectivePrice = selectedVariant?.price ?? product?.price ?? 0;
+    const effectiveStock = selectedVariant?.stock ?? product?.stock ?? 0;
+    const effectiveImage = selectedVariant?.image || mainImage;
+
     const handleQuantityChange = (type) => {
         if (type === 'inc') {
             setQuantity(prev => prev + 1);
@@ -99,8 +95,8 @@ const ProductDetails = () => {
     };
 
     const handleAddToCart = () => {
-        if (product && product.stock > 0) {
-            addToCart(product, quantity);
+        if (product && effectiveStock > 0) {
+            addToCart(product, quantity, selectedVariant);
             setAddedToCart(true);
             setTimeout(() => setAddedToCart(false), 3000);
         }
@@ -149,9 +145,9 @@ const ProductDetails = () => {
 
     const hasDiscount =
         typeof product.originalPrice === 'number' &&
-        product.originalPrice > product.price;
+        product.originalPrice > effectivePrice;
     const discountPercent = hasDiscount
-        ? Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100)
+        ? Math.round(((product.originalPrice - effectivePrice) / product.originalPrice) * 100)
         : null;
 
     const categoryParam = product.category ? encodeURIComponent(product.category) : '';
@@ -198,9 +194,9 @@ const ProductDetails = () => {
         offers: {
             '@type': 'Offer',
             priceCurrency: 'KES',
-            price: product.price,
+            price: effectivePrice,
             availability:
-                product.stock > 0
+                effectiveStock > 0
                     ? 'https://schema.org/InStock'
                     : 'https://schema.org/OutOfStock',
             url: typeof window !== 'undefined' ? window.location.href : undefined,
@@ -249,7 +245,7 @@ const ProductDetails = () => {
                             onMouseMove={handleImageMouseMove}
                         >
                             <img
-                                src={mainImage}
+                                src={effectiveImage}
                                 alt={product.name}
                                 style={zoomTransform || undefined}
                             />
@@ -280,7 +276,7 @@ const ProductDetails = () => {
 
                     <div className="pd-price-row">
                         <span className="pd-price-dot"></span>
-                        <span className="pd-price">KSh {product.price.toLocaleString()}</span>
+                        <span className="pd-price">KSh {effectivePrice.toLocaleString()}</span>
                         {hasDiscount && (
                             <>
                                 <span className="pd-original-price">
@@ -305,7 +301,6 @@ const ProductDetails = () => {
                             </ul>
                         </div>
                     )}
-
                     <div className="pd-actions">
                         <div className="pd-qty">
                             <button type="button" onClick={() => handleQuantityChange('dec')} aria-label="Decrease quantity">−</button>
@@ -315,7 +310,7 @@ const ProductDetails = () => {
                         <button
                             className="pd-add-to-cart"
                             onClick={handleAddToCart}
-                            disabled={product.stock <= 0}
+                            disabled={effectiveStock <= 0}
                             style={{
                                 transform: addedToCart ? 'scale(1.03)' : 'scale(1)',
                                 boxShadow: addedToCart
@@ -324,7 +319,7 @@ const ProductDetails = () => {
                                 transition: 'transform 0.18s ease-out, box-shadow 0.18s ease-out',
                             }}
                         >
-                            {product.stock <= 0 ? 'Out of stock' : addedToCart ? '✓ Added to cart' : 'ADD TO CART'}
+                            {effectiveStock <= 0 ? 'Out of stock' : addedToCart ? '✓ Added to cart' : 'ADD TO CART'}
                         </button>
                     </div>
 
@@ -342,7 +337,7 @@ const ProductDetails = () => {
                         {product.sku && (
                             <div className="pd-meta-row">
                                 <span className="pd-meta-label">SKU:</span>
-                                <span className="pd-meta-value">{product.sku}</span>
+                                <span className="pd-meta-value">{selectedVariant?.sku || product.sku}</span>
                             </div>
                         )}
                         <div className="pd-meta-row">
@@ -368,29 +363,50 @@ const ProductDetails = () => {
                 </div>
             </div>
 
+            {Array.isArray(product.variants) && product.variants.length > 0 && (
+                <section className="pd-variants-gallery">
+                    <div className="pd-variants-gallery-header">
+                        <span className="pd-variants-label">Choose Option</span>
+                    </div>
+                    <div className="pd-variants-thumbnails">
+                        {product.variants.map((variant) => {
+                            const thumbSrc = variant.image || product.images?.[0] || '';
+                            return (
+                                <button
+                                    key={variant.sku}
+                                    type="button"
+                                    className={`pd-variant-thumb-card ${variant.sku === selectedVariantSku ? 'active' : ''}`}
+                                    onClick={() => {
+                                        setSelectedVariantSku(variant.sku);
+                                        if (variant.image) setMainImage(variant.image);
+                                    }}
+                                >
+                                    <div className="pd-variant-thumb-image-wrap">
+                                        {thumbSrc ? (
+                                            <img
+                                                src={thumbSrc}
+                                                alt={buildVariantDisplayName(variant)}
+                                                className="pd-variant-thumb-image"
+                                            />
+                                        ) : (
+                                            <div className="pd-variant-thumb-placeholder">No image</div>
+                                        )}
+                                    </div>
+                                    <div className="pd-variant-thumb-meta">
+                                        <span className="pd-variant-thumb-label">{buildVariantDisplayName(variant)}</span>
+                                        <span className="pd-variant-thumb-stock">
+                                            {variant.stock > 0 ? 'In stock' : 'Out of stock'}
+                                        </span>
+                                    </div>
+                                </button>
+                            );
+                        })}
+                    </div>
+                </section>
+            )}
+
             <ProductDescriptionSection html={product.description} specs={product.specs} />
 
-                    {variantOptions.length > 0 && (
-                        <div className="pd-variants">
-                            <span className="pd-variants-label">Variants:</span>
-                            <div className="pd-variants-list">
-                                {[product, ...variantOptions].map((item) => (
-                                    <button
-                                        key={item._id}
-                                        type="button"
-                                        className={`pd-variant-pill ${item.slug === product.slug ? 'active' : ''}`}
-                                        onClick={() => {
-                                            if (item.slug !== product.slug) {
-                                                navigate(`/product/${item.slug}`);
-                                            }
-                                        }}
-                                    >
-                                        {item.variantLabel || item.color || item.subCategory || 'Option'}
-                                    </button>
-                                ))}
-                            </div>
-                        </div>
-                    )}
             {relatedProducts.length > 0 && (
                 <section className="pd-related">
                     <div className="pd-related-header">

@@ -1,12 +1,16 @@
+
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { apiFetch } from '../../utils/apiClient';
+import './Dashboard.css';
 
 const Dashboard = () => {
     const { user } = useAuth();
     const [analytics, setAnalytics] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
+    // Step 1: Minimal low-stock notification logic
+    const lowStockProducts = analytics && analytics.lowStockProducts ? analytics.lowStockProducts : [];
 
     useEffect(() => {
         const fetchAnalytics = async () => {
@@ -27,70 +31,109 @@ const Dashboard = () => {
 
     if (loading)
         return (
-            <div style={{ padding: '80px 0', textAlign: 'center', color: '#6b7280' }}>
+            <div className="dashboard-container" style={{ textAlign: 'center', color: '#6b7280' }}>
                 <div className="loading-spinner large"></div>
                 <p style={{ marginTop: '16px', fontSize: '14px' }}>Loading dashboard...</p>
             </div>
         );
-    if (error) return <div style={{ color: 'red' }}>{error}</div>;
+    if (error) return <div className="dashboard-container" style={{ color: 'red' }}>{error}</div>;
     if (!analytics) return null;
 
     return (
-        <div>
-            <h1 style={{ fontSize: '28px', marginBottom: '30px', color: '#333' }}>Dashboard</h1>
+        <div className="dashboard-container">
+            <h1 className="dashboard-title">Dashboard</h1>
 
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '20px', marginBottom: '40px' }}>
-                <div style={{ backgroundColor: 'white', padding: '20px', borderRadius: '10px', boxShadow: '0 4px 6px rgba(0,0,0,0.05)', borderLeft: '4px solid #3b82f6' }}>
-                    <h3 style={{ margin: '0 0 10px 0', fontSize: '14px', color: '#666' }}>Total Users</h3>
-                    <p style={{ margin: 0, fontSize: '24px', fontWeight: 'bold', color: '#111827' }}>{analytics.totalUsers}</p>
+            {/* Low-stock notification (always visible) */}
+            <div className="low-stock-alert">
+                {lowStockProducts.length > 0 ? (
+                    <>
+                        <div>
+                            Attention: {lowStockProducts.length} product{lowStockProducts.length > 1 ? 's are' : ' is'} low on stock!
+                        </div>
+                        <ul className="low-stock-list">
+                            {lowStockProducts.map((p, idx) => (
+                                <li key={p._id + (p.variantSku || '')} className="low-stock-item">
+                                    <a
+                                        href={p.isVariant
+                                            ? `/admin/products/${p.slug}/edit?variant=${encodeURIComponent(p.variantSku || '')}`
+                                            : `/admin/products/${p.slug}/edit`}
+                                        className="low-stock-link"
+                                        style={{ textDecoration: 'underline', color: '#2563eb', fontWeight: 500 }}
+                                    >
+                                        {p.name}
+                                    </a>
+                                    {p.isVariant && (
+                                        <span style={{ marginLeft: 6, color: '#555', fontSize: 13 }}>
+                                            {p.variantColor && <span>Color: {p.variantColor} </span>}
+                                            {p.variantStyle && <span>Style: {p.variantStyle} </span>}
+                                            {p.variantLabel && <span>Label: {p.variantLabel} </span>}
+                                            {p.variantSku && <span>SKU: {p.variantSku}</span>}
+                                        </span>
+                                    )}
+                                    <span style={{ marginLeft: 10, color: '#b91c1c', fontWeight: 500 }}>
+                                        (Stock: {p.stock})
+                                    </span>
+                                </li>
+                            ))}
+                        </ul>
+                    </>
+                ) : (
+                    <div>No products are currently low on stock.</div>
+                )}
+            </div>
+
+            <div className="dashboard-stats">
+                <div className="dashboard-stat users">
+                    <h3 className="dashboard-stat-title">Total Users</h3>
+                    <p className="dashboard-stat-value">{analytics.totalUsers}</p>
                 </div>
-                <div style={{ backgroundColor: 'white', padding: '20px', borderRadius: '10px', boxShadow: '0 4px 6px rgba(0,0,0,0.05)', borderLeft: '4px solid #10b981' }}>
-                    <h3 style={{ margin: '0 0 10px 0', fontSize: '14px', color: '#666' }}>Total Orders</h3>
-                    <p style={{ margin: 0, fontSize: '24px', fontWeight: 'bold', color: '#111827' }}>{analytics.totalOrders}</p>
+                <div className="dashboard-stat orders">
+                    <h3 className="dashboard-stat-title">Total Orders</h3>
+                    <p className="dashboard-stat-value">{analytics.totalOrders}</p>
                 </div>
-                <div style={{ backgroundColor: 'white', padding: '20px', borderRadius: '10px', boxShadow: '0 4px 6px rgba(0,0,0,0.05)', borderLeft: '4px solid #f59e0b' }}>
-                    <h3 style={{ margin: '0 0 10px 0', fontSize: '14px', color: '#666' }}>Total Products</h3>
-                    <p style={{ margin: 0, fontSize: '24px', fontWeight: 'bold', color: '#111827' }}>{analytics.products}</p>
+                <div className="dashboard-stat products">
+                    <h3 className="dashboard-stat-title">Total Products</h3>
+                    <p className="dashboard-stat-value">{analytics.products}</p>
                 </div>
-                <div style={{ backgroundColor: 'white', padding: '20px', borderRadius: '10px', boxShadow: '0 4px 6px rgba(0,0,0,0.05)', borderLeft: '4px solid #e41e26' }}>
-                    <h3 style={{ margin: '0 0 10px 0', fontSize: '14px', color: '#666' }}>Total Sales</h3>
-                    <p style={{ margin: 0, fontSize: '24px', fontWeight: 'bold', color: '#111827' }}>KSh {analytics.totalSales.toLocaleString()}</p>
+                <div className="dashboard-stat sales">
+                    <h3 className="dashboard-stat-title">Total Sales</h3>
+                    <p className="dashboard-stat-value">KSh {analytics.totalSales.toLocaleString()}</p>
                 </div>
             </div>
 
-            <div style={{ backgroundColor: 'white', padding: '25px', borderRadius: '10px', boxShadow: '0 4px 6px rgba(0,0,0,0.05)' }}>
-                <h2 style={{ fontSize: '18px', marginBottom: '20px', color: '#333' }}>Recent Orders</h2>
+            <div className="dashboard-orders">
+                <h2 className="dashboard-orders-title">Recent Orders</h2>
                 <div style={{ overflowX: 'auto' }}>
-                    <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+                    <table className="dashboard-orders-table">
                         <thead>
-                            <tr style={{ borderBottom: '2px solid #eee' }}>
-                                <th style={{ padding: '12px', color: '#666', fontSize: '14px' }}>ID</th>
-                                <th style={{ padding: '12px', color: '#666', fontSize: '14px' }}>USER</th>
-                                <th style={{ padding: '12px', color: '#666', fontSize: '14px' }}>DATE</th>
-                                <th style={{ padding: '12px', color: '#666', fontSize: '14px' }}>TOTAL</th>
-                                <th style={{ padding: '12px', color: '#666', fontSize: '14px' }}>PAID</th>
-                                <th style={{ padding: '12px', color: '#666', fontSize: '14px' }}>DELIVERED</th>
+                            <tr>
+                                <th>ID</th>
+                                <th>USER</th>
+                                <th>DATE</th>
+                                <th>TOTAL</th>
+                                <th>PAID</th>
+                                <th>DELIVERED</th>
                             </tr>
                         </thead>
                         <tbody>
                             {analytics.recentOrders.map((order) => (
-                                <tr key={order._id} style={{ borderBottom: '1px solid #eee' }}>
-                                    <td style={{ padding: '12px', fontSize: '14px', color: '#333' }}>{order._id.substring(0, 10)}...</td>
-                                    <td style={{ padding: '12px', fontSize: '14px', color: '#333' }}>{order.user && order.user.name}</td>
-                                    <td style={{ padding: '12px', fontSize: '14px', color: '#333' }}>{order.createdAt.substring(0, 10)}</td>
-                                    <td style={{ padding: '12px', fontSize: '14px', color: '#333' }}>KSh {order.totalPrice.toLocaleString()}</td>
-                                    <td style={{ padding: '12px', fontSize: '14px' }}>
+                                <tr key={order._id}>
+                                    <td>{order._id.substring(0, 10)}...</td>
+                                    <td>{order.user && order.user.name}</td>
+                                    <td>{order.createdAt.substring(0, 10)}</td>
+                                    <td>KSh {order.totalPrice.toLocaleString()}</td>
+                                    <td>
                                         {order.isPaid ? (
-                                            <span style={{ color: '#10b981', backgroundColor: '#d1fae5', padding: '4px 8px', borderRadius: '4px', fontSize: '12px' }}>Yes</span>
+                                            <span className="dashboard-badge paid">Yes</span>
                                         ) : (
-                                            <span style={{ color: '#ef4444', backgroundColor: '#fee2e2', padding: '4px 8px', borderRadius: '4px', fontSize: '12px' }}>No</span>
+                                            <span className="dashboard-badge unpaid">No</span>
                                         )}
                                     </td>
-                                    <td style={{ padding: '12px', fontSize: '14px' }}>
+                                    <td>
                                         {order.isDelivered ? (
-                                            <span style={{ color: '#10b981', backgroundColor: '#d1fae5', padding: '4px 8px', borderRadius: '4px', fontSize: '12px' }}>Yes</span>
+                                            <span className="dashboard-badge delivered">Yes</span>
                                         ) : (
-                                            <span style={{ color: '#ef4444', backgroundColor: '#fee2e2', padding: '4px 8px', borderRadius: '4px', fontSize: '12px' }}>No</span>
+                                            <span className="dashboard-badge undelivered">No</span>
                                         )}
                                     </td>
                                 </tr>

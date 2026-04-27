@@ -29,6 +29,7 @@ const SiteSettings = () => {
     const [promoBarLink, setPromoBarLink] = useState('');
     const [heroSlides, setHeroSlides] = useState([]);
     const [curatedCollections, setCuratedCollections] = useState([]);
+    const [globalLowStockThreshold, setGlobalLowStockThreshold] = useState(5);
     const [saving, setSaving] = useState(false);
     const [message, setMessage] = useState('');
     const [error, setError] = useState('');
@@ -52,6 +53,9 @@ const SiteSettings = () => {
             Array.isArray(config.curatedCollections) && config.curatedCollections.length
                 ? config.curatedCollections
                 : []
+        );
+        setGlobalLowStockThreshold(
+            typeof config.globalLowStockThreshold === 'number' ? config.globalLowStockThreshold : 5
         );
     }, [config]);
 
@@ -107,6 +111,7 @@ const SiteSettings = () => {
                 promoBarLink,
                 heroSlides,
                 curatedCollections,
+                globalLowStockThreshold: Number(globalLowStockThreshold),
             };
 
             const data = await apiFetch(`${import.meta.env.VITE_API_URL}/api/site-config`, {
@@ -181,7 +186,7 @@ const SiteSettings = () => {
             <form onSubmit={submitHandler}>
                 <div style={styles.card}>
                     <h2 style={styles.sectionTitle}>Store basics</h2>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '16px' }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr 1fr', gap: '16px' }}>
                         <div>
                             <label style={styles.label}>Tax rate (VAT %) </label>
                             <input
@@ -214,6 +219,21 @@ const SiteSettings = () => {
                                 placeholder="/delivery or full https:// URL"
                                 style={styles.input}
                             />
+                        </div>
+                        <div>
+                            <label style={styles.label}>Global low-stock threshold</label>
+                            <input
+                                type="number"
+                                min="1"
+                                max="1000"
+                                step="1"
+                                value={globalLowStockThreshold}
+                                onChange={(e) => setGlobalLowStockThreshold(e.target.value)}
+                                style={styles.input}
+                            />
+                            <p style={{ marginTop: '6px', fontSize: '12px', color: '#6b7280' }}>
+                                Applies to all products/variants unless a product overrides it.
+                            </p>
                         </div>
                     </div>
                 </div>

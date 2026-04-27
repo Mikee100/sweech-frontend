@@ -11,6 +11,8 @@ export const CartProvider = ({ children }) => {
     const { user } = useAuth();
     const [cart, setCart] = useState([]);
 
+    const getCartItemKey = (item) => `${item._id}::${item.variantSku || ''}`;
+
     // Load account-linked cart when user logs in
     useEffect(() => {
         const loadAccountCart = async () => {
@@ -39,6 +41,7 @@ export const CartProvider = ({ children }) => {
                     items: cart.map((item) => ({
                         productId: item._id,
                         quantity: item.quantity,
+                        variantSku: item.variantSku || undefined,
                     })),
                 };
 
@@ -57,16 +60,36 @@ export const CartProvider = ({ children }) => {
         syncAccountCart();
     }, [cart, user]);
 
-    const addToCart = (product, quantity = 1) => {
+    const addToCart = (product, quantity = 1, selectedVariant = null) => {
         if (!product) return;
         const safeIncomingQty = Math.max(1, quantity);
+        const variantStock =
+            selectedVariant && typeof selectedVariant.stock === 'number'
+                ? selectedVariant.stock
+                : null;
+        const effectiveStock = variantStock ?? product.stock;
         const maxAllowedFromStock =
-            typeof product.stock === 'number' && product.stock > 0
-                ? product.stock
+            typeof effectiveStock === 'number' && effectiveStock > 0
+                ? effectiveStock
                 : MAX_PER_ITEM;
 
+        const variantPayload = selectedVariant
+            ? {
+                  variantSku: selectedVariant.sku || '',
+                  variantLabel: selectedVariant.label || '',
+                  variantColor: selectedVariant.color || '',
+                  variantStyle: selectedVariant.style || '',
+                  price: selectedVariant.price ?? product.price,
+                  stock: selectedVariant.stock ?? product.stock,
+                  images: selectedVariant.image
+                      ? [selectedVariant.image, ...(product.images || [])]
+                      : product.images || [],
+              }
+            : {};
+
         setCart((prevCart) => {
-            const existing = prevCart.find((item) => item._id === product._id);
+            const lookupKey = `${product._id}::${variantPayload.variantSku || ''}`;
+            const existing = prevCart.find((item) => getCartItemKey(item) === lookupKey);
 
             if (existing) {
                 const targetQty = Math.min(
@@ -75,26 +98,28 @@ export const CartProvider = ({ children }) => {
                 );
 
                 return prevCart.map((item) =>
-                    item._id === product._id
+                    getCartItemKey(item) === lookupKey
                         ? { ...item, quantity: targetQty }
                         : item
                 );
             }
 
             const initialQty = Math.min(safeIncomingQty, Math.min(maxAllowedFromStock, MAX_PER_ITEM));
-            return [...prevCart, { ...product, quantity: initialQty }];
+            return [...prevCart, { ...product, ...variantPayload, quantity: initialQty }];
         });
     };
 
-    const removeFromCart = (productId) => {
-        setCart((prevCart) => prevCart.filter((item) => item._id !== productId));
+    const removeFromCart = (productId, variantSku = '') => {
+        const targetKey = `${productId}::${variantSku || ''}`;
+        setCart((prevCart) => prevCart.filter((item) => getCartItemKey(item) !== targetKey));
     };
 
-    const updateQuantity = (productId, quantity) => {
+    const updateQuantity = (productId, quantity, variantSku = '') => {
         if (quantity < 1) return;
+        const targetKey = `${productId}::${variantSku || ''}`;
         setCart((prevCart) =>
             prevCart.map((item) => {
-                if (item._id !== productId) return item;
+                if (getCartItemKey(item) !== targetKey) return item;
 
                 const maxFromStock =
                     typeof item.stock === 'number' && item.stock > 0

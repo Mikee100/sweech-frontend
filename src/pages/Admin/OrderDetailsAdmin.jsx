@@ -254,7 +254,10 @@ const OrderDetailsAdmin = () => {
                         <p style={{ margin: '0 0 5px 0', fontSize: '14px' }}><strong>Phone:</strong> {order.user.phone || 'N/A'}</p>
                         <p style={{ margin: '12px 0 5px 0', fontSize: '14px' }}><strong>Shipping Address:</strong></p>
                         <p style={{ margin: 0, color: '#666', fontSize: '14px' }}>
-                            {order.shippingAddress.address}, {order.shippingAddress.city}<br />
+                            {order.shippingAddress.address}, {order.shippingAddress.city}
+                            {order.shippingAddress.region && `, ${order.shippingAddress.region}`}
+                            {order.shippingAddress.location && ` (${order.shippingAddress.location})`}
+                            <br />
                             {order.shippingAddress.postalCode}, {order.shippingAddress.country}
                         </p>
                         <p style={{ marginTop: '12px', fontSize: '13px', color: '#6b7280' }}>
@@ -399,10 +402,7 @@ const OrderDetailsAdmin = () => {
                                 <span style={{ color: '#6b7280' }}>Shipping:</span>
                                 <span>KSh {order.shippingPrice.toLocaleString()}</span>
                             </div>
-                            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                                <span style={{ color: '#6b7280' }}>Tax:</span>
-                                <span>KSh {order.taxPrice.toLocaleString()}</span>
-                            </div>
+
                             {order.discountAmount > 0 && (
                                 <div style={{ display: 'flex', justifyContent: 'space-between', color: '#16a34a' }}>
                                     <span style={{ color: '#16a34a' }}>Discount{order.discountCode ? ` (${order.discountCode})` : ''}:</span>

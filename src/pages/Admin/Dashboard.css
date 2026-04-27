@@ -1,0 +1,117 @@
+.dashboard-container {
+  padding: 32px 0;
+}
+
+.dashboard-title {
+  font-size: 2rem;
+  margin-bottom: 30px;
+  color: #333;
+  font-weight: 700;
+}
+
+.dashboard-stats {
+  display: flex;
+  gap: 24px;
+  margin-bottom: 32px;
+  flex-wrap: wrap;
+}
+
+.dashboard-stat {
+  background: #fff;
+  padding: 20px;
+  border-radius: 10px;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+  border-left: 4px solid #3b82f6;
+  min-width: 180px;
+  flex: 1 1 180px;
+}
+.dashboard-stat.users { border-left-color: #3b82f6; }
+.dashboard-stat.orders { border-left-color: #10b981; }
+.dashboard-stat.products { border-left-color: #f59e0b; }
+.dashboard-stat.sales { border-left-color: #e41e26; }
+
+.dashboard-stat-title {
+  margin: 0 0 10px 0;
+  font-size: 14px;
+  color: #666;
+  font-weight: 500;
+}
+.dashboard-stat-value {
+  margin: 0;
+  font-size: 24px;
+  font-weight: bold;
+  color: #111827;
+}
+
+.low-stock-alert {
+  background: #fffbe6;
+  border: 1px solid #ffe58f;
+  color: #ad6800;
+  padding: 18px 20px;
+  border-radius: 8px;
+  margin-bottom: 28px;
+  font-size: 15px;
+  font-weight: 500;
+}
+.low-stock-list {
+  margin: 10px 0 0 0;
+  padding-left: 18px;
+}
+.low-stock-item {
+  margin-bottom: 4px;
+  font-size: 14px;
+}
+
+.dashboard-orders {
+  background: #fff;
+  padding: 25px;
+  border-radius: 10px;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+}
+.dashboard-orders-title {
+  font-size: 18px;
+  margin-bottom: 20px;
+  color: #333;
+  font-weight: 600;
+}
+.dashboard-orders-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+}
+.dashboard-orders-table th {
+  padding: 12px;
+  color: #666;
+  font-size: 14px;
+  font-weight: 500;
+  border-bottom: 2px solid #eee;
+}
+.dashboard-orders-table td {
+  padding: 12px;
+  font-size: 14px;
+  color: #333;
+  border-bottom: 1px solid #eee;
+}
+.dashboard-badge {
+  display: inline-block;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 500;
+}
+.dashboard-badge.paid {
+  color: #10b981;
+  background: #d1fae5;
+}
+.dashboard-badge.unpaid {
+  color: #ef4444;
+  background: #fee2e2;
+}
+.dashboard-badge.delivered {
+  color: #10b981;
+  background: #d1fae5;
+}
+.dashboard-badge.undelivered {
+  color: #ef4444;
+  background: #fee2e2;
+}

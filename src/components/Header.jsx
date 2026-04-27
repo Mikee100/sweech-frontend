@@ -184,31 +184,24 @@ const Header = ({ isCartOpen, setIsCartOpen }) => {
                 <div className="main-nav-wrapper">
                     <div className="container header-grid">
                         {/* Logo Block */}
-                        <div className="logo-area" style={{ display: 'flex', alignItems: 'center', gap: '18px' }}>
-                            <Link to="/" className="brand-logo" style={{ display: 'flex', alignItems: 'center' }}>
-                                <img src="/WhatsApp%20Image%202026-04-15%20at%204.49.39%20PM.jpeg" alt="Logo" style={{ height: '54px', maxWidth: '140px', objectFit: 'contain', display: 'block' }} />
-                            </Link>
-                            <span style={{ height: '38px', borderLeft: '2px solid #bbb', margin: '0 8px' }}></span>
-                            <button
-                                className="partner-logo"
-                                style={{
-                                    fontWeight: 700,
-                                    fontSize: '2rem',
-                                    letterSpacing: '2px',
-                                    marginTop: '5px',
-                                    display: 'inline-block',
-                                    background: 'none',
-                                    border: 'none',
-                                    cursor: 'pointer',
-                                    padding: 0,
-                                    outline: 'none'
-                                }}
-                                onClick={() => navigate('/')}
-                                onMouseDown={e => e.preventDefault()} // Prevents focus border
-                                type="button"
-                            >
-                                ANKER
-                            </button>
+                       
+                        <div className="logo-area">
+                            {/* Logo and Partner Branding Area */}
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '18px' }}>
+                                <Link to="/" className="brand-logo" style={{ display: 'flex', alignItems: 'center' }}>
+                                    <img src="/WhatsApp%20Image%202026-04-15%20at%204.49.39%20PM.jpeg" alt="Logo" style={{ height: '40px', width: 'auto', objectFit: 'contain', display: 'block' }} />
+                                </Link>
+                                <div style={{ height: '32px', width: '1.5px', background: '#e0e0e0', margin: '0 8px' }}></div>
+                                <button
+                                    className="partner-logo"
+                                    onClick={() => navigate('/')}
+                                    onMouseDown={e => e.preventDefault()} // Prevents focus border
+                                    type="button"
+                                    style={{ fontWeight: 600, fontSize: '1.1rem', background: 'none', border: 'none', cursor: 'pointer', padding: 0, margin: 0, color: '#222', display: 'flex', alignItems: 'center' }}
+                                >
+                                    ANKER
+                                </button>
+                            </div>
                         </div>
 
                         {/* Navigation Links - Sweech-style */}
@@ -273,7 +266,7 @@ const Header = ({ isCartOpen, setIsCartOpen }) => {
                                     </button>
                                     <div className="help-dropdown">
                                         <Link to="/profile" className="help-link">My Account</Link>
-                                        <Link to="/cart" className="help-link">Shopping Cart</Link>
+                                        <Link to="/cart" className="help-link hide-on-mobile">Shopping Cart</Link>
                                         <Link to="/checkout" className="help-link">Checkout</Link>
                                         <Link to="/orders" className="help-link">Order Tracking</Link>
                                         <Link to="/favourites" className="help-link">Wishlist</Link>
@@ -323,7 +316,7 @@ const Header = ({ isCartOpen, setIsCartOpen }) => {
                             </div>
 
                             <div
-                                className="action-ic cart-trigger"
+                                className="action-ic cart-trigger hide-on-mobile"
                                 role="button"
                                 tabIndex={0}
                                 aria-label="Go to cart page"
@@ -340,7 +333,7 @@ const Header = ({ isCartOpen, setIsCartOpen }) => {
                             </div>
 
                             {user ? (
-                                <div className="user-profile-nav">
+                                <div className="user-profile-nav hide-on-mobile">
                                     <div className="user-trigger" onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}>
                                         <div className="user-avatar">
                                             {user.name.charAt(0)}

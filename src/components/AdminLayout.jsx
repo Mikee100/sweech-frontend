@@ -79,6 +79,7 @@ const AdminLayout = () => {
                         { to: '/admin/discounts', icon: 'fas fa-tags', label: 'Discounts' },
                         { to: '/admin/categories-brands', icon: 'fas fa-layer-group', label: 'Categories & Brands' },
                         { to: '/admin/home-sections', icon: 'fas fa-th-large', label: 'Home Sections' },
+                        { to: '/admin/delivery-routes', icon: 'fas fa-route', label: 'Delivery Routes' },
                         { to: '/admin/settings', icon: 'fas fa-cog', label: 'Site Settings' },
                     ].map((link) => (
                         <NavLink
